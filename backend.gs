@@ -221,7 +221,7 @@ function deleteTask(id) {
 // ============== Projects ==================
 // ==========================================
 
-const PROJECT_JSON_FIELDS = ['Гілки', 'Посилання', 'Контакти', 'Дедлайни'];
+const PROJECT_JSON_FIELDS = ['Гілки', 'Контакти'];
 
 /**
  * Initializes the Projects sheet with headers if it's empty.
@@ -237,7 +237,7 @@ function initProjectsSheet() {
   if (sheet.getLastRow() === 0) {
     const headers = [
       'ID', 'Дата створення', 'Дата оновлення', 'Назва', 'Опис', 'Статус',
-      'Гілки', 'Посилання', 'Контакти', 'Дедлайни'
+      'Гілки', 'Контакти'
     ];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
@@ -1000,14 +1000,6 @@ function getProjectsContext() {
         return `${b.name} ${done}/${branchTasks.length}`;
       }).join(', ');
       context += `   Гілки: ${branchSummary}\n`;
-    }
-
-    const milestones = Array.isArray(p.Дедлайни) ? p.Дедлайни : [];
-    const nextMilestone = milestones
-      .filter(m => !m.done && m.date)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-    if (nextMilestone) {
-      context += `   Найближча віха: "${nextMilestone.title}" (${formatDateShort(nextMilestone.date)})\n`;
     }
 
     if (p.Опис) context += '   Нотатки: ' + truncateForContext(p.Опис, AI_CTX_PROJECT_NOTES_LENGTH) + '\n';
