@@ -1,5 +1,6 @@
 const SPREADSHEET_ID = '1djbxaGjw1qIpFBZb2P14noEY0iErch1hSOBBxlcXP5k';
 const SHEET_NAME = 'Tasks';
+const PROJECTS_SHEET_NAME = 'Projects';
 const DIRECTORY_SPREADSHEET_ID = '1xbaVZaeKf_J_85vJJKpVBNJSu51-HdWo0RVLBTzjo_g';
 
 // ==========================================
@@ -155,7 +156,17 @@ function saveTask(task) {
     headers.push('Пріоритет');
     sheet.getRange(1, headers.length).setValue('Пріоритет');
   }
-  
+
+  if (!headers.includes('Проєкт')) {
+    headers.push('Проєкт');
+    sheet.getRange(1, headers.length).setValue('Проєкт');
+  }
+
+  if (!headers.includes('Гілка')) {
+    headers.push('Гілка');
+    sheet.getRange(1, headers.length).setValue('Гілка');
+  }
+
   // Ensure steps are stringified for storage
   const taskToSave = {...task};
   if (taskToSave['Кроки'] && typeof taskToSave['Кроки'] !== 'string') {
@@ -196,6 +207,130 @@ function deleteTask(id) {
   const sheet = initSheet();
   const data = sheet.getDataRange().getValues();
   
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == id) {
+      sheet.deleteRow(i + 1);
+      invalidateAiContextCache();
+      return true;
+    }
+  }
+  return false;
+}
+
+// ==========================================
+// ============== Projects ==================
+// ==========================================
+
+const PROJECT_JSON_FIELDS = ['Гілки', 'Посилання', 'Контакти', 'Дедлайни'];
+
+/**
+ * Initializes the Projects sheet with headers if it's empty.
+ */
+function initProjectsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(PROJECTS_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(PROJECTS_SHEET_NAME);
+  }
+
+  if (sheet.getLastRow() === 0) {
+    const headers = [
+      'ID', 'Дата створення', 'Назва', 'Опис', 'Статус',
+      'Гілки', 'Посилання', 'Контакти', 'Дедлайни'
+    ];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Fetches all projects from the spreadsheet, parsing the JSON-in-cell
+ * columns (Гілки/Посилання/Контакти/Дедлайни) the same way getTasks()
+ * parses 'Кроки' — corrupted or missing values default to [].
+ */
+function getProjects() {
+  const sheet = initProjectsSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    let obj = {};
+    headers.forEach((header, i) => {
+      let val = row[i];
+      if (val instanceof Date) {
+        val = val.toISOString();
+      }
+      obj[header] = val;
+    });
+
+    PROJECT_JSON_FIELDS.forEach(field => {
+      if (obj[field]) {
+        try {
+          const fieldVal = obj[field];
+          obj[field] = typeof fieldVal === 'string' && fieldVal ? JSON.parse(fieldVal) : (Array.isArray(fieldVal) ? fieldVal : []);
+        } catch (e) {
+          obj[field] = [];
+        }
+      } else {
+        obj[field] = [];
+      }
+    });
+
+    return obj;
+  });
+}
+
+/**
+ * Saves a project (creates new or updates existing).
+ */
+function saveProject(project) {
+  const sheet = initProjectsSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const projectToSave = {...project};
+  PROJECT_JSON_FIELDS.forEach(field => {
+    if (projectToSave[field] && typeof projectToSave[field] !== 'string') {
+      projectToSave[field] = JSON.stringify(projectToSave[field]);
+    }
+  });
+
+  let rowIndex = -1;
+  if (project.ID) {
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == project.ID) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  } else {
+    projectToSave.ID = Utilities.getUuid();
+    projectToSave['Дата створення'] = new Date();
+  }
+
+  const rowValues = headers.map(header => projectToSave[header] || '');
+
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
+  } else {
+    sheet.appendRow(rowValues);
+  }
+
+  invalidateAiContextCache();
+  return projectToSave.ID;
+}
+
+/**
+ * Deletes a project by ID. Tasks that reference it are left with a
+ * dangling Проєкт/Гілка ID — the UI simply shows no badge for them.
+ */
+function deleteProject(id) {
+  const sheet = initProjectsSheet();
+  const data = sheet.getDataRange().getValues();
+
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == id) {
       sheet.deleteRow(i + 1);
@@ -704,6 +839,8 @@ const AI_CTX_MAX_CLICKUP_TASKS = 25;
 const AI_CTX_DESC_LENGTH = 200;
 const AI_CTX_NOTES_LENGTH = 150;
 const AI_CTX_EVENT_DESC_LENGTH = 120;
+const AI_CTX_MAX_PROJECTS = 15;
+const AI_CTX_PROJECT_NOTES_LENGTH = 150;
 
 /**
  * Shortens text for the prompt without cutting mid-nonsense.
@@ -816,6 +953,65 @@ function formatDateShort(dateStr) {
 }
 
 /**
+ * Formats a clean textual list of projects (with branch progress and
+ * upcoming milestones) for the AI context.
+ */
+function getProjectsContext() {
+  const projects = getProjects();
+  if (projects.length === 0) {
+    return '';
+  }
+
+  const tasks = getTasks();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const shown = projects.slice(0, AI_CTX_MAX_PROJECTS);
+  let context = `ПРОЄКТИ (${shown.length} з ${projects.length}):\n`;
+
+  shown.forEach((p, index) => {
+    const projectTasks = tasks.filter(t => t['Проєкт'] === p.ID);
+    const activeCount = projectTasks.filter(t => t.Статус !== 'Виконано').length;
+    const overdueCount = projectTasks.filter(t => {
+      if (!t.Дедлайн || t.Статус === 'Виконано') return false;
+      const d = new Date(t.Дедлайн);
+      if (isNaN(d)) return false;
+      d.setHours(0, 0, 0, 0);
+      return d < today;
+    }).length;
+
+    context += `${index + 1}. [${p.Статус || 'Без статусу'}] "${p.Назва}" | ID: ${p.ID}\n`;
+    context += `   Активних задач: ${activeCount} | Прострочено: ${overdueCount}\n`;
+
+    const branches = Array.isArray(p.Гілки) ? p.Гілки : [];
+    if (branches.length > 0) {
+      const branchSummary = branches.map(b => {
+        const branchTasks = projectTasks.filter(t => t['Гілка'] === b.id);
+        const done = branchTasks.filter(t => t.Статус === 'Виконано').length;
+        return `${b.name} ${done}/${branchTasks.length}`;
+      }).join(', ');
+      context += `   Гілки: ${branchSummary}\n`;
+    }
+
+    const milestones = Array.isArray(p.Дедлайни) ? p.Дедлайни : [];
+    const nextMilestone = milestones
+      .filter(m => !m.done && m.date)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+    if (nextMilestone) {
+      context += `   Найближча віха: "${nextMilestone.title}" (${formatDateShort(nextMilestone.date)})\n`;
+    }
+
+    if (p.Опис) context += '   Нотатки: ' + truncateForContext(p.Опис, AI_CTX_PROJECT_NOTES_LENGTH) + '\n';
+  });
+
+  if (projects.length > shown.length) {
+    context += `…та ще ${projects.length - shown.length} проєктів.\n`;
+  }
+
+  return context;
+}
+
+/**
  * Formats a clean textual list of calendar events for the AI context.
  */
 function getCalendarContext() {
@@ -879,7 +1075,12 @@ function getAiContext(forceRefresh) {
     }
   }
 
-  const parts = [getTasksContext(), getCalendarContext()];
+  const parts = [getTasksContext()];
+
+  const projectsContext = getProjectsContext();
+  if (projectsContext) parts.push(projectsContext);
+
+  parts.push(getCalendarContext());
 
   const clickUpContext = getClickUpContext();
   if (clickUpContext) parts.push(clickUpContext);

@@ -1573,6 +1573,229 @@
             text-decoration: underline;
         }
 
+        /* ===== Projects Feature Styles ===== */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+
+        .project-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+            background: var(--bg-card-hover);
+        }
+
+        .project-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .project-card-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text-main);
+        }
+
+        .project-card-desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .project-card-branches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .project-card-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            padding-top: 0.6rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .project-card-stats strong {
+            color: var(--text-main);
+        }
+
+        .project-card-stats .stat-overdue strong {
+            color: #f44747;
+        }
+
+        .badge-archived {
+            background: rgba(128, 128, 128, 0.18);
+            color: var(--text-muted);
+        }
+
+        .project-detail-back {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.4rem 0;
+            margin-bottom: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        .project-detail-back:hover {
+            color: var(--primary-hover);
+        }
+
+        .project-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+
+        .project-detail-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .project-detail-section h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .project-link-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--primary);
+            text-decoration: none;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            margin: 0 0.5rem 0.5rem 0;
+        }
+
+        .project-link-chip:hover {
+            border-color: var(--primary);
+        }
+
+        .project-contact-row,
+        .project-milestone-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.4rem 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            font-size: 0.88rem;
+        }
+
+        .project-contact-row:last-child,
+        .project-milestone-row:last-child {
+            border-bottom: none;
+        }
+
+        .project-milestone-row.done .milestone-title {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .project-branch-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .project-branch-group-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Generic repeatable list editor: branches/links/contacts/milestones in the project modal */
+        .list-editor-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.3rem 0;
+        }
+
+        .list-editor-row input[type="text"],
+        .list-editor-row input[type="url"],
+        .list-editor-row input[type="date"] {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+        }
+
+        .list-editor-row input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .list-editor-remove {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.3rem;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .list-editor-remove:hover {
+            color: #f44747;
+            background: rgba(244, 71, 71, 0.1);
+        }
+
+        .list-editor-add {
+            margin-top: 0.4rem;
+        }
+
         /* ===== ClickUp Integration Styles ===== */
         .clickup-task-list {
             display: flex;
@@ -2349,6 +2572,7 @@
         <div class="main-tabs"
             style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; padding-bottom: 0.5rem;">
             <button class="tab-btn active" onclick="switchMainTab('tasks')" id="tabBtnTasks">📋 Задачі</button>
+            <button class="tab-btn" onclick="switchMainTab('projects')" id="tabBtnProjects">🗂️ Проєкти</button>
             <button class="tab-btn" onclick="switchMainTab('directory')" id="tabBtnDirectory">📞 Довідник</button>
             <button class="tab-btn" onclick="switchMainTab('clickup')" id="tabBtnClickUp">🟣 ClickUp</button>
         </div>
@@ -2484,6 +2708,41 @@
                         </div>
                     </div>
                 </aside>
+            </div>
+        </div>
+
+        <!-- Projects View -->
+        <div id="projectsViewContainer" style="display: none;">
+            <div id="projectsDashboardView">
+                <div class="controls">
+                    <input type="text" class="search-input" id="projectSearchInput" placeholder="Пошук проєктів..."
+                        oninput="filterProjects()">
+                    <select class="search-input" style="flex: 0 1 auto; min-width: 160px;" id="projectStatusFilter"
+                        onchange="filterProjects()">
+                        <option value="all">Усі статуси</option>
+                        <option value="Активний">Активний</option>
+                        <option value="На паузі">На паузі</option>
+                        <option value="Завершено">Завершено</option>
+                        <option value="Архів">Архів</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="openProjectModal()">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5v14M5 12h14"></path>
+                        </svg>
+                        Новий проєкт
+                    </button>
+                </div>
+                <div id="projectsGrid" class="projects-grid">
+                    <div class="empty-state" style="grid-column: 1 / -1; border: none; background: transparent;">
+                        <div class="loader"></div>
+                        <h3 style="margin-top: 1.5rem;">Завантаження...</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div id="projectDetailView" style="display: none;">
+                <!-- Populated by renderProjectDetail() -->
             </div>
         </div>
 
@@ -2790,6 +3049,20 @@
                         <input type="text" id="category" placeholder="Напр. Розробка">
                     </div>
                 </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="taskProject">Проєкт</label>
+                        <select id="taskProject" onchange="populateTaskBranchOptions()">
+                            <option value="">— Без проєкту —</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskBranch">Гілка проєкту</label>
+                        <select id="taskBranch">
+                            <option value="">— Без гілки —</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="comments">Нотатки / Етапи</label>
                     <textarea id="comments" placeholder="Напишіть тут важливі деталі..."></textarea>
@@ -2837,6 +3110,77 @@
                     </button>
                     <button type="button" class="btn btn-outline" onclick="closeModal()">Скасувати</button>
                     <button type="submit" class="btn btn-primary" id="saveBtn">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div id="projectModal" class="modal-overlay" onclick="handleProjectOutsideClick(event)">
+        <div class="modal">
+            <h2 id="projectModalTitle">Створити проєкт</h2>
+            <form id="projectForm" onsubmit="handleProjectFormSubmit(event)">
+                <input type="hidden" id="projectId">
+                <div class="form-group">
+                    <label for="projectName">Назва проєкту</label>
+                    <input type="text" id="projectName" required placeholder="Напр. Внутрішній портал">
+                </div>
+                <div class="form-group">
+                    <label for="projectDescription">Опис / нотатки</label>
+                    <textarea id="projectDescription" placeholder="Контекст, домовленості, нюанси..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="projectStatus">Статус</label>
+                    <select id="projectStatus">
+                        <option value="Активний">Активний</option>
+                        <option value="На паузі">На паузі</option>
+                        <option value="Завершено">Завершено</option>
+                        <option value="Архів">Архів</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="margin-bottom: 0.5rem; display: block;">🔀 Гілки (напрямки роботи)</label>
+                    <div id="projectBranchesList"></div>
+                    <button type="button" class="ai-btn-sm list-editor-add" onclick="addProjectListRow('branches')">➕
+                        Додати гілку</button>
+                </div>
+
+                <div class="form-group">
+                    <label style="margin-bottom: 0.5rem; display: block;">🔗 Посилання</label>
+                    <div id="projectLinksList"></div>
+                    <button type="button" class="ai-btn-sm list-editor-add" onclick="addProjectListRow('links')">➕
+                        Додати посилання</button>
+                </div>
+
+                <div class="form-group">
+                    <label style="margin-bottom: 0.5rem; display: block;">👤 Контакти / стейкхолдери</label>
+                    <div id="projectContactsList"></div>
+                    <button type="button" class="ai-btn-sm list-editor-add" onclick="addProjectListRow('contacts')">➕
+                        Додати контакт</button>
+                </div>
+
+                <div class="form-group">
+                    <label style="margin-bottom: 0.5rem; display: block;">📅 Дедлайни / віхи</label>
+                    <div id="projectMilestonesList"></div>
+                    <button type="button" class="ai-btn-sm list-editor-add"
+                        onclick="addProjectListRow('milestones')">➕ Додати віху</button>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline"
+                        style="margin-right: auto; color: #f44747; border-color: rgba(244, 71, 71, 0.3);"
+                        id="projectDeleteBtn" onclick="handleProjectDelete()" hidden>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6">
+                            </path>
+                        </svg>
+                        Видалити
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="closeProjectModal()">Скасувати</button>
+                    <button type="submit" class="btn btn-primary" id="projectSaveBtn">Зберегти</button>
                 </div>
             </form>
         </div>
@@ -2922,6 +3266,7 @@
 
     <script>
         let allTasks = [];
+        let projectsData = [];
         let currentView = 'list';
 
         function loadTasks() {
@@ -2936,6 +3281,33 @@
                     alert('Помилка завантаження: ' + err);
                 })
                 .getTasks();
+        }
+
+        function loadProjects() {
+            google.script.run
+                .withSuccessHandler(projects => {
+                    projectsData = projects || [];
+                    // Task cards show project/branch badges — re-render so they pick up the data
+                    filterTasks();
+                    renderProjectsDashboard();
+                })
+                .withFailureHandler(err => {
+                    console.error('Помилка завантаження проєктів: ' + err);
+                })
+                .getProjects();
+        }
+
+        /**
+         * Small "🗂️ Проєкт / Гілка" pill shown on a task card when the task
+         * is linked to a project. Shared by both list and kanban card templates.
+         */
+        function getTaskProjectBadgeHtml(task) {
+            if (!task['Проєкт']) return '';
+            const project = projectsData.find(p => p.ID === task['Проєкт']);
+            if (!project) return '';
+            const branch = (project.Гілки || []).find(b => b.id === task['Гілка']);
+            const label = branch ? `${project.Назва} / ${branch.name}` : project.Назва;
+            return `<span class="tag-category" style="background: rgba(86, 156, 214, 0.12); color: #569cd6; border-color: rgba(86, 156, 214, 0.25);" title="Проєкт">🗂️ ${label}</span>`;
         }
 
         function updateDashboard() {
@@ -3061,6 +3433,7 @@
                         <div class="task-header">
                             <div class="task-title">${task.Назва}</div>
                             ${task.Тип ? `<span class="tag-category">${task.Тип}</span>` : ''}
+                            ${getTaskProjectBadgeHtml(task)}
                             ${stepsHtml}
                             <span class="badge ${getBadgeClass(task.Статус)}">${task.Статус}</span>
                         </div>
@@ -3118,6 +3491,7 @@
                     </div>
                     <div style="margin-bottom: 0.3rem; display: flex; gap: 4px; flex-wrap: wrap;">
                         ${task.Тип ? `<span class="tag-category">${task.Тип}</span>` : ''}
+                        ${getTaskProjectBadgeHtml(task)}
                         ${stepsHtml}
                     </div>
                     ${miniStepsHtml}
@@ -3269,6 +3643,16 @@
             }
         }
 
+        function getProjectBadgeClass(status) {
+            switch (status) {
+                case 'Активний': return 'badge-new';
+                case 'На паузі': return 'badge-progress';
+                case 'Завершено': return 'badge-done';
+                case 'Архів': return 'badge-archived';
+                default: return '';
+            }
+        }
+
         function formatDate(dateStr) {
             if (!dateStr) return 'Немає';
             const d = new Date(dateStr);
@@ -3287,6 +3671,8 @@
             stepsContainer.innerHTML = '';
 
             stepsGroup.style.display = 'block';
+
+            populateTaskProjectOptions();
 
             if (taskId) {
                 title.innerText = 'Редагувати задачу';
@@ -3307,6 +3693,9 @@
                         document.getElementById('deadline').value = d.toISOString().split('T')[0];
                     }
                 }
+                document.getElementById('taskProject').value = task['Проєкт'] || '';
+                populateTaskBranchOptions();
+                document.getElementById('taskBranch').value = task['Гілка'] || '';
                 modalSteps = task.Кроки || [];
                 renderModalSteps(modalSteps, task.ID);
             } else {
@@ -3314,6 +3703,8 @@
                 document.getElementById('deleteBtn').hidden = true;
                 document.getElementById('priority').value = 'Середній';
                 document.getElementById('category').value = '';
+                document.getElementById('taskProject').value = '';
+                populateTaskBranchOptions();
                 modalSteps = [];
                 renderModalSteps(modalSteps, null);
             }
@@ -3358,7 +3749,9 @@
                 'Коментарі': document.getElementById('comments').value,
                 'Посилання на результат': document.getElementById('resultLink').value,
                 'Дата виконання': doneDate,
-                'Кроки': modalSteps
+                'Кроки': modalSteps,
+                'Проєкт': document.getElementById('taskProject').value,
+                'Гілка': document.getElementById('taskBranch').value
             };
 
             google.script.run
@@ -3642,6 +4035,7 @@
         // Initial load
         document.addEventListener('DOMContentLoaded', function () {
             loadTasks();
+            loadProjects();
             loadCalendarEvents();
             checkAiStatus();
             // Runs once; without it the AI would not see ClickUp until the tab is opened
@@ -4545,21 +4939,435 @@
         }
 
         // ==========================================
+        // ============ Projects Feature JS =========
+        // ==========================================
+
+        function renderProjectsDashboard() {
+            const grid = document.getElementById('projectsGrid');
+            if (!grid) return;
+
+            const query = (document.getElementById('projectSearchInput').value || '').toLowerCase();
+            const statusFilter = document.getElementById('projectStatusFilter').value;
+
+            const filtered = projectsData.filter(p => {
+                const matchesSearch = (p.Назва || '').toLowerCase().includes(query) || (p.Опис || '').toLowerCase().includes(query);
+                const matchesStatus = statusFilter === 'all' || p.Статус === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; border: none; background: transparent;">
+                    <h3>Проєктів поки немає</h3>
+                    <p style="margin-top: 0.5rem; color: var(--text-muted);">Натисніть «Новий проєкт», щоб почати.</p>
+                </div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(generateProjectCardHTML).join('');
+        }
+
+        function filterProjects() {
+            renderProjectsDashboard();
+        }
+
+        function generateProjectCardHTML(project) {
+            const tasks = allTasks.filter(t => t['Проєкт'] === project.ID);
+            const activeCount = tasks.filter(t => t.Статус !== 'Виконано').length;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const overdueCount = tasks.filter(t => {
+                if (t.Статус === 'Виконано' || !t.Дедлайн) return false;
+                const d = new Date(t.Дедлайн);
+                if (isNaN(d)) return false;
+                d.setHours(0, 0, 0, 0);
+                return d < today;
+            }).length;
+
+            const branches = project.Гілки || [];
+            const branchesHtml = branches.map(b => {
+                const bTasks = tasks.filter(t => t['Гілка'] === b.id);
+                const done = bTasks.filter(t => t.Статус === 'Виконано').length;
+                return `<span class="tag-category">🔀 ${b.name} ${done}/${bTasks.length}</span>`;
+            }).join('');
+
+            return `
+                <div class="project-card" onclick="openProjectDetail('${project.ID}')">
+                    <div class="project-card-header">
+                        <div class="project-card-title">${project.Назва}</div>
+                        <span class="badge ${getProjectBadgeClass(project.Статус)}">${project.Статус || ''}</span>
+                    </div>
+                    ${project.Опис ? `<div class="project-card-desc">${project.Опис}</div>` : ''}
+                    ${branchesHtml ? `<div class="project-card-branches">${branchesHtml}</div>` : ''}
+                    <div class="project-card-stats">
+                        <span>Активних: <strong>${activeCount}</strong></span>
+                        <span class="stat-overdue">Прострочено: <strong>${overdueCount}</strong></span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openProjectDetail(id) {
+            const project = projectsData.find(p => p.ID === id);
+            if (!project) return;
+            document.getElementById('projectsDashboardView').style.display = 'none';
+            const detail = document.getElementById('projectDetailView');
+            detail.style.display = 'block';
+            renderProjectDetail(project);
+        }
+
+        function closeProjectDetail() {
+            const dashboard = document.getElementById('projectsDashboardView');
+            const detail = document.getElementById('projectDetailView');
+            if (dashboard) dashboard.style.display = 'block';
+            if (detail) {
+                detail.style.display = 'none';
+                detail.innerHTML = '';
+            }
+        }
+
+        function renderProjectDetail(project) {
+            const detail = document.getElementById('projectDetailView');
+            const tasks = allTasks.filter(t => t['Проєкт'] === project.ID);
+            const branches = project.Гілки || [];
+            const links = project.Посилання || [];
+            const contacts = project.Контакти || [];
+            const milestones = project.Дедлайни || [];
+
+            const linksHtml = links.length > 0
+                ? links.map(l => `<a class="project-link-chip" href="${l.url}" target="_blank" rel="noopener">🔗 ${l.label || l.url}</a>`).join('')
+                : '<p style="color: var(--text-muted); font-size: 0.85rem;">Посилань ще немає.</p>';
+
+            const contactsHtml = contacts.length > 0
+                ? contacts.map(c => `
+                    <div class="project-contact-row">
+                        <span style="font-weight: 600;">${c.name || ''}</span>
+                        ${c.role ? `<span class="tag-assignee">${c.role}</span>` : ''}
+                        ${c.contact ? `<span style="color: var(--text-muted);">${c.contact}</span>` : ''}
+                    </div>
+                `).join('')
+                : '<p style="color: var(--text-muted); font-size: 0.85rem;">Контактів ще немає.</p>';
+
+            const milestonesHtml = milestones.length > 0
+                ? milestones.map((m, idx) => `
+                    <div class="project-milestone-row ${m.done ? 'done' : ''}">
+                        <input type="checkbox" ${m.done ? 'checked' : ''}
+                            onchange="toggleProjectMilestone('${project.ID}', ${idx}, this.checked)"
+                            style="width: 16px; height: 16px; flex-shrink: 0; cursor: pointer;">
+                        <span class="milestone-title" style="flex: 1;">${m.title}</span>
+                        ${m.date ? `<span style="color: var(--text-muted); font-size: 0.8rem;">${formatDate(m.date)}</span>` : ''}
+                    </div>
+                `).join('')
+                : '<p style="color: var(--text-muted); font-size: 0.85rem;">Віх ще немає.</p>';
+
+            let branchesTasksHtml = branches.map(b => {
+                const bTasks = tasks.filter(t => t['Гілка'] === b.id);
+                const done = bTasks.filter(t => t.Статус === 'Виконано').length;
+                const tasksHtml = bTasks.length > 0
+                    ? bTasks.map((t, i) => generateCardHTML(t, i)).join('')
+                    : '<p style="color: var(--text-muted); font-size: 0.85rem;">Немає задач у цій гілці.</p>';
+                return `
+                    <div class="project-branch-group">
+                        <div class="project-branch-group-title">🔀 ${b.name}
+                            <span style="color: var(--text-muted); font-weight: 400;">(${done}/${bTasks.length})</span>
+                        </div>
+                        <div class="task-list">${tasksHtml}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const branchIds = branches.map(b => b.id);
+            const unassignedTasks = tasks.filter(t => !branchIds.includes(t['Гілка']));
+            if (unassignedTasks.length > 0 || branches.length === 0) {
+                const tasksHtml = unassignedTasks.length > 0
+                    ? unassignedTasks.map((t, i) => generateCardHTML(t, i)).join('')
+                    : '<p style="color: var(--text-muted); font-size: 0.85rem;">Немає задач.</p>';
+                branchesTasksHtml += `
+                    <div class="project-branch-group">
+                        <div class="project-branch-group-title">📋 Без гілки</div>
+                        <div class="task-list">${tasksHtml}</div>
+                    </div>
+                `;
+            }
+
+            detail.innerHTML = `
+                <button class="project-detail-back" onclick="closeProjectDetail()">← Назад до проєктів</button>
+                <div class="project-detail-header">
+                    <div>
+                        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.75rem; color: var(--text-main); margin-bottom: 0.4rem;">${project.Назва}</h2>
+                        <span class="badge ${getProjectBadgeClass(project.Статус)}">${project.Статус || ''}</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-outline" onclick="openProjectModal('${project.ID}')">✏️ Редагувати</button>
+                    </div>
+                </div>
+
+                ${project.Опис ? `<div class="project-detail-section"><h3>📝 Нотатки</h3><p style="color: var(--text-main); white-space: pre-wrap;">${project.Опис}</p></div>` : ''}
+
+                <div class="project-detail-section">
+                    <h3>🔗 Посилання</h3>
+                    ${linksHtml}
+                </div>
+
+                <div class="project-detail-section">
+                    <h3>👤 Контакти / стейкхолдери</h3>
+                    ${contactsHtml}
+                </div>
+
+                <div class="project-detail-section">
+                    <h3>📅 Дедлайни / віхи</h3>
+                    ${milestonesHtml}
+                </div>
+
+                <div class="project-detail-section">
+                    <h3>🔀 Гілки та задачі</h3>
+                    ${branchesTasksHtml}
+                </div>
+            `;
+        }
+
+        function toggleProjectMilestone(projectId, index, done) {
+            const project = projectsData.find(p => p.ID === projectId);
+            if (!project || !project.Дедлайни[index]) return;
+            project.Дедлайни[index].done = done;
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    renderProjectDetail(project);
+                })
+                .withFailureHandler(err => {
+                    alert('Помилка збереження: ' + err);
+                    project.Дедлайни[index].done = !done;
+                    renderProjectDetail(project);
+                })
+                .saveProject(project);
+        }
+
+        // ---- Project create/edit modal ----
+
+        const PROJECT_LIST_FIELD_CONFIG = {
+            branches: {
+                containerId: 'projectBranchesList',
+                fields: [{ key: 'name', type: 'text', placeholder: 'Назва гілки (напр. Backend)' }],
+                makeItem: () => ({ id: 'br_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: '' })
+            },
+            links: {
+                containerId: 'projectLinksList',
+                fields: [
+                    { key: 'label', type: 'text', placeholder: 'Назва (репо, дизайн...)' },
+                    { key: 'url', type: 'url', placeholder: 'https://...' }
+                ],
+                makeItem: () => ({ label: '', url: '' })
+            },
+            contacts: {
+                containerId: 'projectContactsList',
+                fields: [
+                    { key: 'name', type: 'text', placeholder: 'Ім\'я' },
+                    { key: 'role', type: 'text', placeholder: 'Роль' },
+                    { key: 'contact', type: 'text', placeholder: 'Telegram / email / тел.' }
+                ],
+                makeItem: () => ({ name: '', role: '', contact: '' })
+            },
+            milestones: {
+                containerId: 'projectMilestonesList',
+                fields: [
+                    { key: 'title', type: 'text', placeholder: 'Назва віхи' },
+                    { key: 'date', type: 'date', placeholder: '' }
+                ],
+                makeItem: () => ({ title: '', date: '', done: false })
+            }
+        };
+
+        let modalProjectLists = { branches: [], links: [], contacts: [], milestones: [] };
+
+        function renderProjectListEditor(type) {
+            const config = PROJECT_LIST_FIELD_CONFIG[type];
+            const container = document.getElementById(config.containerId);
+            const items = modalProjectLists[type];
+
+            if (items.length === 0) {
+                container.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.3rem 0;">Порожньо</div>';
+                return;
+            }
+
+            container.innerHTML = items.map((item, index) => {
+                const doneCheckbox = type === 'milestones' ? `
+                    <input type="checkbox" ${item.done ? 'checked' : ''}
+                        onchange="updateProjectListField('${type}', ${index}, 'done', this.checked)"
+                        style="width: 16px; height: 16px; flex-shrink: 0;">
+                ` : '';
+                const inputsHtml = config.fields.map(f => `
+                    <input type="${f.type}" placeholder="${f.placeholder}"
+                        value="${(item[f.key] || '').toString().replace(/"/g, '&quot;')}"
+                        oninput="updateProjectListField('${type}', ${index}, '${f.key}', this.value)">
+                `).join('');
+                return `
+                    <div class="list-editor-row">
+                        ${doneCheckbox}
+                        ${inputsHtml}
+                        <button type="button" class="list-editor-remove" onclick="deleteProjectListRow('${type}', ${index})" title="Видалити">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addProjectListRow(type) {
+            modalProjectLists[type].push(PROJECT_LIST_FIELD_CONFIG[type].makeItem());
+            renderProjectListEditor(type);
+        }
+
+        function updateProjectListField(type, index, field, value) {
+            modalProjectLists[type][index][field] = value;
+        }
+
+        function deleteProjectListRow(type, index) {
+            modalProjectLists[type].splice(index, 1);
+            renderProjectListEditor(type);
+        }
+
+        function openProjectModal(id = null) {
+            const modal = document.getElementById('projectModal');
+            const form = document.getElementById('projectForm');
+            const title = document.getElementById('projectModalTitle');
+            form.reset();
+            document.getElementById('projectId').value = '';
+
+            if (id) {
+                const project = projectsData.find(p => p.ID === id);
+                if (!project) return;
+                title.innerText = 'Редагувати проєкт';
+                document.getElementById('projectDeleteBtn').hidden = false;
+                document.getElementById('projectId').value = project.ID;
+                document.getElementById('projectName').value = project.Назва || '';
+                document.getElementById('projectDescription').value = project.Опис || '';
+                document.getElementById('projectStatus').value = project.Статус || 'Активний';
+                modalProjectLists = {
+                    branches: JSON.parse(JSON.stringify(project.Гілки || [])),
+                    links: JSON.parse(JSON.stringify(project.Посилання || [])),
+                    contacts: JSON.parse(JSON.stringify(project.Контакти || [])),
+                    milestones: JSON.parse(JSON.stringify(project.Дедлайни || []))
+                };
+            } else {
+                title.innerText = 'Створити проєкт';
+                document.getElementById('projectDeleteBtn').hidden = true;
+                document.getElementById('projectStatus').value = 'Активний';
+                modalProjectLists = { branches: [], links: [], contacts: [], milestones: [] };
+            }
+
+            Object.keys(PROJECT_LIST_FIELD_CONFIG).forEach(renderProjectListEditor);
+            modal.classList.add('active');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('projectModal').classList.remove('active');
+        }
+
+        function handleProjectOutsideClick(event) {
+            if (event.target === document.getElementById('projectModal')) {
+                closeProjectModal();
+            }
+        }
+
+        function handleProjectFormSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('projectSaveBtn');
+            btn.disabled = true;
+            btn.innerText = 'Збереження...';
+
+            // Drop rows the user left fully empty
+            const branches = modalProjectLists.branches.filter(b => (b.name || '').trim());
+            const links = modalProjectLists.links.filter(l => (l.label || '').trim() || (l.url || '').trim());
+            const contacts = modalProjectLists.contacts.filter(c => (c.name || '').trim() || (c.role || '').trim() || (c.contact || '').trim());
+            const milestones = modalProjectLists.milestones.filter(m => (m.title || '').trim());
+
+            const project = {
+                ID: document.getElementById('projectId').value,
+                'Назва': document.getElementById('projectName').value,
+                'Опис': document.getElementById('projectDescription').value,
+                'Статус': document.getElementById('projectStatus').value,
+                'Гілки': branches,
+                'Посилання': links,
+                'Контакти': contacts,
+                'Дедлайни': milestones
+            };
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    closeProjectModal();
+                    loadProjects();
+                    btn.disabled = false;
+                    btn.innerText = 'Зберегти';
+                })
+                .withFailureHandler(err => {
+                    alert('Помилка збереження проєкту: ' + err);
+                    btn.disabled = false;
+                    btn.innerText = 'Зберегти';
+                })
+                .saveProject(project);
+        }
+
+        function handleProjectDelete() {
+            const id = document.getElementById('projectId').value;
+            if (!id) return;
+            if (!confirm('Видалити проєкт? Прив\'язані задачі залишаться, але втратять позначку проєкту.')) return;
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    closeProjectModal();
+                    closeProjectDetail();
+                    loadProjects();
+                })
+                .withFailureHandler(err => {
+                    alert('Помилка видалення: ' + err);
+                })
+                .deleteProject(id);
+        }
+
+        // ---- Task modal integration: Project/Branch selects ----
+
+        function populateTaskProjectOptions() {
+            const select = document.getElementById('taskProject');
+            const current = select.value;
+            select.innerHTML = '<option value="">— Без проєкту —</option>' +
+                projectsData.map(p => `<option value="${p.ID}">${p.Назва}</option>`).join('');
+            select.value = current;
+        }
+
+        function populateTaskBranchOptions() {
+            const projectId = document.getElementById('taskProject').value;
+            const select = document.getElementById('taskBranch');
+            const project = projectsData.find(p => p.ID === projectId);
+            const branches = project ? (project.Гілки || []) : [];
+            select.innerHTML = '<option value="">— Без гілки —</option>' +
+                branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            select.disabled = branches.length === 0;
+        }
+
+        // ==========================================
         // ====== Phone Directory JS ================
         // ==========================================
         let directoryData = [];
 
         function switchMainTab(tab) {
             document.getElementById('tabBtnTasks').classList.remove('active');
+            document.getElementById('tabBtnProjects').classList.remove('active');
             document.getElementById('tabBtnDirectory').classList.remove('active');
             document.getElementById('tabBtnClickUp').classList.remove('active');
             document.getElementById('tasksViewContainer').style.display = 'none';
+            document.getElementById('projectsViewContainer').style.display = 'none';
             document.getElementById('directoryViewContainer').style.display = 'none';
             document.getElementById('clickUpViewContainer').style.display = 'none';
 
             if (tab === 'tasks') {
                 document.getElementById('tabBtnTasks').classList.add('active');
                 document.getElementById('tasksViewContainer').style.display = 'block';
+            } else if (tab === 'projects') {
+                document.getElementById('tabBtnProjects').classList.add('active');
+                document.getElementById('projectsViewContainer').style.display = 'block';
+                closeProjectDetail();
+                renderProjectsDashboard();
             } else if (tab === 'directory') {
                 document.getElementById('tabBtnDirectory').classList.add('active');
                 document.getElementById('directoryViewContainer').style.display = 'block';
