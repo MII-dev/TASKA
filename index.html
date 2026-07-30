@@ -1744,6 +1744,7 @@
             margin-bottom: 0.6rem;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.5rem;
         }
 
@@ -3267,6 +3268,7 @@
     <script>
         let allTasks = [];
         let projectsData = [];
+        let currentProjectDetailId = null;
         let currentView = 'list';
 
         function loadTasks() {
@@ -3276,6 +3278,11 @@
                     allTasks = tasks || [];
                     updateDashboard();
                     filterTasks();
+                    // Keep an open project detail view (branch task lists, counts) in sync
+                    if (currentProjectDetailId) {
+                        const project = projectsData.find(p => p.ID === currentProjectDetailId);
+                        if (project) renderProjectDetail(project);
+                    }
                 })
                 .withFailureHandler(err => {
                     alert('Помилка завантаження: ' + err);
@@ -5010,6 +5017,7 @@
         function openProjectDetail(id) {
             const project = projectsData.find(p => p.ID === id);
             if (!project) return;
+            currentProjectDetailId = id;
             document.getElementById('projectsDashboardView').style.display = 'none';
             const detail = document.getElementById('projectDetailView');
             detail.style.display = 'block';
@@ -5017,6 +5025,7 @@
         }
 
         function closeProjectDetail() {
+            currentProjectDetailId = null;
             const dashboard = document.getElementById('projectsDashboardView');
             const detail = document.getElementById('projectDetailView');
             if (dashboard) dashboard.style.display = 'block';
@@ -5068,8 +5077,11 @@
                     : '<p style="color: var(--text-muted); font-size: 0.85rem;">Немає задач у цій гілці.</p>';
                 return `
                     <div class="project-branch-group">
-                        <div class="project-branch-group-title">🔀 ${b.name}
-                            <span style="color: var(--text-muted); font-weight: 400;">(${done}/${bTasks.length})</span>
+                        <div class="project-branch-group-title">
+                            <span>🔀 ${b.name}
+                                <span style="color: var(--text-muted); font-weight: 400;">(${done}/${bTasks.length})</span>
+                            </span>
+                            <button type="button" class="ai-btn-sm" onclick="openModalForBranch('${project.ID}', '${b.id}')">➕ Задача</button>
                         </div>
                         <div class="task-list">${tasksHtml}</div>
                     </div>
@@ -5084,7 +5096,10 @@
                     : '<p style="color: var(--text-muted); font-size: 0.85rem;">Немає задач.</p>';
                 branchesTasksHtml += `
                     <div class="project-branch-group">
-                        <div class="project-branch-group-title">📋 Без гілки</div>
+                        <div class="project-branch-group-title">
+                            <span>📋 Без гілки</span>
+                            <button type="button" class="ai-btn-sm" onclick="openModalForBranch('${project.ID}', '')">➕ Задача</button>
+                        </div>
                         <div class="task-list">${tasksHtml}</div>
                     </div>
                 `;
@@ -5124,6 +5139,18 @@
                     ${branchesTasksHtml}
                 </div>
             `;
+        }
+
+        /**
+         * Opens the regular "new task" modal pre-filled with a project (and
+         * optionally a branch), so tasks can be added straight from a branch
+         * group in the project detail view instead of picking them from selects.
+         */
+        function openModalForBranch(projectId, branchId) {
+            openModal();
+            document.getElementById('taskProject').value = projectId;
+            populateTaskBranchOptions();
+            document.getElementById('taskBranch').value = branchId || '';
         }
 
         function toggleProjectMilestone(projectId, index, done) {
