@@ -236,7 +236,7 @@ function initProjectsSheet() {
 
   if (sheet.getLastRow() === 0) {
     const headers = [
-      'ID', 'Дата створення', 'Назва', 'Опис', 'Статус',
+      'ID', 'Дата створення', 'Дата оновлення', 'Назва', 'Опис', 'Статус',
       'Гілки', 'Посилання', 'Контакти', 'Дедлайни'
     ];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -291,6 +291,11 @@ function saveProject(project) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
 
+  if (!headers.includes('Дата оновлення')) {
+    headers.push('Дата оновлення');
+    sheet.getRange(1, headers.length).setValue('Дата оновлення');
+  }
+
   const projectToSave = {...project};
   PROJECT_JSON_FIELDS.forEach(field => {
     if (projectToSave[field] && typeof projectToSave[field] !== 'string') {
@@ -310,6 +315,10 @@ function saveProject(project) {
     projectToSave.ID = Utilities.getUuid();
     projectToSave['Дата створення'] = new Date();
   }
+
+  // Every save — create or edit — counts as touching the project, so this
+  // always reflects when the project's info was last actually looked at.
+  projectToSave['Дата оновлення'] = new Date();
 
   const rowValues = headers.map(header => projectToSave[header] || '');
 

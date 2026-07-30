@@ -3666,6 +3666,43 @@
             return d.toLocaleDateString('uk-UA');
         }
 
+        /**
+         * "сьогодні" / "вчора" / "N дн. тому" / "N тижн. тому" / "N міс. тому" —
+         * used for the project "last updated" indicator, where a relative
+         * label makes staleness obvious at a glance faster than a raw date.
+         */
+        function formatRelativeTime(dateStr) {
+            if (!dateStr) return 'ніколи';
+            const d = new Date(dateStr);
+            if (isNaN(d)) return 'ніколи';
+
+            const startOfDay = date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const days = Math.round((startOfDay(new Date()) - startOfDay(d)) / (1000 * 60 * 60 * 24));
+
+            if (days <= 0) return 'сьогодні';
+            if (days === 1) return 'вчора';
+            if (days < 7) return `${days} дн. тому`;
+            if (days < 30) return `${Math.round(days / 7)} тижн. тому`;
+            return `${Math.round(days / 30)} міс. тому`;
+        }
+
+        const PROJECT_STALE_WARN_DAYS = 14;
+        const PROJECT_STALE_DANGER_DAYS = 30;
+
+        /**
+         * Inline color for the "last updated" label — same red/yellow accents
+         * getDeadlineColor() uses for overdue/due-today deadlines.
+         */
+        function getProjectStalenessColor(dateStr) {
+            if (!dateStr) return 'color: #f44747; font-weight: 600;';
+            const d = new Date(dateStr);
+            if (isNaN(d)) return '';
+            const days = Math.round((new Date() - d) / (1000 * 60 * 60 * 24));
+            if (days >= PROJECT_STALE_DANGER_DAYS) return 'color: #f44747; font-weight: 600;';
+            if (days >= PROJECT_STALE_WARN_DAYS) return 'color: #dcdcaa; font-weight: 600;';
+            return '';
+        }
+
         function openModal(taskId = null) {
             const modal = document.getElementById('taskModal');
             const form = document.getElementById('taskForm');
@@ -5009,6 +5046,7 @@
                     <div class="project-card-stats">
                         <span>Активних: <strong>${activeCount}</strong></span>
                         <span class="stat-overdue">Прострочено: <strong>${overdueCount}</strong></span>
+                        <span style="${getProjectStalenessColor(project['Дата оновлення'])}">🕒 Оновлено: ${formatRelativeTime(project['Дата оновлення'])}</span>
                     </div>
                 </div>
             `;
@@ -5111,6 +5149,7 @@
                     <div>
                         <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.75rem; color: var(--text-main); margin-bottom: 0.4rem;">${project.Назва}</h2>
                         <span class="badge ${getProjectBadgeClass(project.Статус)}">${project.Статус || ''}</span>
+                        <span style="margin-left: 0.6rem; font-size: 0.8rem; ${getProjectStalenessColor(project['Дата оновлення'])} ${!getProjectStalenessColor(project['Дата оновлення']) ? 'color: var(--text-muted);' : ''}">🕒 Востаннє оновлено: ${formatDate(project['Дата оновлення'])}</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="btn btn-outline" onclick="openProjectModal('${project.ID}')">✏️ Редагувати</button>
