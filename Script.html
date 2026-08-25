@@ -815,6 +815,7 @@
             loadProjects();
             loadCalendarEvents();
             checkAiStatus();
+            checkReminderStatus();
             // Runs once; without it the AI would not see ClickUp until the tab is opened
             migrateClickUpTokenIfNeeded(null);
             // Auto-refresh calendar every 5 minutes
@@ -1385,6 +1386,37 @@
                     })
                     .saveTaskSteps(taskId, modalSteps);
             }
+        }
+
+        function checkReminderStatus() {
+            google.script.run
+                .withSuccessHandler(status => renderDigestToggle(status.enabled))
+                .withFailureHandler(err => console.error('Failed to check reminder status:', err))
+                .getReminderStatus();
+        }
+
+        function renderDigestToggle(enabled) {
+            const btn = document.getElementById('digestToggleBtn');
+            btn.classList.toggle('btn-primary', enabled);
+            btn.classList.toggle('btn-outline', !enabled);
+            btn.title = enabled
+                ? 'Щоденний email-дайджест: увімкнено (9:00) — клацни, щоб вимкнути'
+                : 'Щоденний email-дайджест: вимкнено — клацни, щоб увімкнути';
+        }
+
+        function toggleDailyDigest() {
+            const btn = document.getElementById('digestToggleBtn');
+            btn.disabled = true;
+            google.script.run
+                .withSuccessHandler(status => {
+                    btn.disabled = false;
+                    renderDigestToggle(status.enabled);
+                })
+                .withFailureHandler(err => {
+                    btn.disabled = false;
+                    alert('Не вдалося змінити налаштування нагадувань: ' + (err.message || String(err)));
+                })
+                .toggleDailyDigest();
         }
 
         function checkAiStatus() {
