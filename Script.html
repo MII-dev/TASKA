@@ -2713,6 +2713,30 @@
                     }
                 })
                 .getClickUpTasks(null, clickUpIncludeClosed);
+
+            loadClickUpAwaitingReply();
+        }
+
+        function loadClickUpAwaitingReply() {
+            const banner = document.getElementById('clickUpAwaitingReplyBanner');
+            google.script.run
+                .withSuccessHandler(function (tasks) {
+                    if (!tasks || tasks.length === 0) {
+                        banner.style.display = 'none';
+                        return;
+                    }
+                    document.getElementById('clickUpAwaitingReplyList').innerHTML = tasks.map(function (t) {
+                        return '<div class="nudges-banner-item">• <a href="#" onclick="openClickUpDetails(\'' + t.id +
+                            '\'); return false;" style="color: var(--accent-purple-light);">' + escapeHtml(t.name) +
+                            '</a> — останнє слово за ' + escapeHtml(t.lastCommenter || 'кимось іншим') + '</div>';
+                    }).join('');
+                    banner.style.display = 'flex';
+                })
+                .withFailureHandler(function (err) {
+                    console.error('Failed to load ClickUp awaiting-reply list:', err);
+                    banner.style.display = 'none';
+                })
+                .getClickUpAwaitingReplyTasks();
         }
 
         function populateClickUpStatuses(tasks) {

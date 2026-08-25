@@ -68,7 +68,7 @@ function resolveClickUpToken(token) {
 
 function invalidateClickUpCache() {
   try {
-    CacheService.getUserCache().removeAll(['cu_tasks_open', 'cu_tasks_all']);
+    CacheService.getUserCache().removeAll(['cu_tasks_open', 'cu_tasks_all', 'cu_awaiting_reply']);
   } catch (e) {
     Logger.log('Кеш: не вдалося скинути ClickUp: ' + e.message);
   }
@@ -647,7 +647,65 @@ function postClickUpTaskComment(taskId, token, commentText) {
     notify_all: true
   };
 
-  return clickUpApiPost('/task/' + taskId + '/comment', resolveClickUpToken(token), payload);
+  const result = clickUpApiPost('/task/' + taskId + '/comment', resolveClickUpToken(token), payload);
+  // The awaiting-reply cache would otherwise keep showing this task for up
+  // to CLICKUP_AWAITING_REPLY_CACHE_SECONDS after we just replied to it.
+  invalidateClickUpCache();
+  return result;
+}
+
+const CLICKUP_AWAITING_REPLY_SCAN_LIMIT = 15;
+const CLICKUP_AWAITING_REPLY_CACHE_SECONDS = 600;
+
+/**
+ * Finds open ClickUp tasks whose last comment is not from us — i.e. tasks
+ * effectively waiting on a reply. Bounded to the top N tasks (in the same
+ * due-date order as the task list) since checking comments costs one extra
+ * API call per task; tasks with no comments at all have nothing to reply to
+ * and are skipped.
+ * @returns {Array} Array of {id, name, url, lastCommenter, lastCommentDate}
+ */
+function getClickUpAwaitingReplyTasks() {
+  const token = getClickUpToken();
+  if (!token) return [];
+
+  const cached = cacheGetJson('cu_awaiting_reply');
+  if (cached) return cached;
+
+  let raw;
+  try {
+    raw = fetchClickUpTasksRaw(token, false);
+  } catch (e) {
+    Logger.log('Не вдалося перевірити задачі, що чекають відповіді: ' + e.message);
+    return [];
+  }
+
+  const currentUserId = raw.currentUser ? raw.currentUser.id : null;
+  const candidates = raw.tasks.slice(0, CLICKUP_AWAITING_REPLY_SCAN_LIMIT);
+
+  const results = [];
+  candidates.forEach(function (t) {
+    try {
+      const comments = getClickUpTaskComments(t.id, token);
+      if (comments.length === 0) return;
+
+      const last = comments[0]; // ClickUp returns newest-first
+      if (currentUserId && last.userId === currentUserId) return; // we already have the last word
+
+      results.push({
+        id: t.id,
+        name: t.name,
+        url: t.url,
+        lastCommenter: last.userName,
+        lastCommentDate: last.date
+      });
+    } catch (e) {
+      Logger.log('Не вдалося перевірити коментарі задачі ' + t.id + ': ' + e.message);
+    }
+  });
+
+  cachePutJson('cu_awaiting_reply', results, CLICKUP_AWAITING_REPLY_CACHE_SECONDS);
+  return results;
 }
 
 /**

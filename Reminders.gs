@@ -74,8 +74,9 @@ function sendDailyDigest() {
   });
 
   const nudges = getProactiveNudges();
+  const awaitingReply = getClickUpAwaitingReplyTasks();
 
-  if (overdue.length === 0 && dueToday.length === 0 && nudges.length === 0) return;
+  if (overdue.length === 0 && dueToday.length === 0 && nudges.length === 0 && awaitingReply.length === 0) return;
 
   const lines = [];
   const briefing = getAiProactiveBriefing();
@@ -110,9 +111,18 @@ function sendDailyDigest() {
     lines.push('');
   }
 
+  if (awaitingReply.length > 0) {
+    lines.push('💬 ЧЕКАЮТЬ ТВОЄЇ ВІДПОВІДІ У CLICKUP (' + awaitingReply.length + '):');
+    awaitingReply.forEach(function (t) {
+      lines.push('- ' + t.name + ' (останнє слово за ' + t.lastCommenter + ')');
+    });
+    lines.push('');
+  }
+
   let subject = '📋 TaskApp: ' + overdue.length + ' прострочено, ' + dueToday.length + ' на сьогодні';
   if (overdue.length === 0 && dueToday.length === 0) {
-    subject = '📋 TaskApp: ' + nudges.length + ' підказ' + (nudges.length === 1 ? 'ка' : 'ки');
+    const signals = nudges.length + awaitingReply.length;
+    subject = '📋 TaskApp: ' + signals + ' сигнал' + (signals === 1 ? '' : signals < 5 ? 'и' : 'ів') + ' на сьогодні';
   }
 
   MailApp.sendEmail({
