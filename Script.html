@@ -819,6 +819,7 @@
             loadCalendarEvents();
             checkAiStatus();
             checkReminderStatus();
+            loadProactiveNudges();
             // Runs once; without it the AI would not see ClickUp until the tab is opened
             migrateClickUpTokenIfNeeded(null);
             // Auto-refresh calendar every 5 minutes
@@ -1389,6 +1390,24 @@
                     })
                     .saveTaskSteps(taskId, modalSteps);
             }
+        }
+
+        function loadProactiveNudges() {
+            google.script.run
+                .withSuccessHandler(nudges => {
+                    const banner = document.getElementById('nudgesBanner');
+                    const list = document.getElementById('nudgesList');
+                    if (!nudges || nudges.length === 0) {
+                        banner.style.display = 'none';
+                        return;
+                    }
+                    list.innerHTML = nudges
+                        .map(n => `<div class="nudges-banner-item">• ${escapeHtml(n.text)}</div>`)
+                        .join('');
+                    banner.style.display = 'flex';
+                })
+                .withFailureHandler(err => console.error('Failed to load nudges:', err))
+                .getProactiveNudges();
         }
 
         function checkReminderStatus() {

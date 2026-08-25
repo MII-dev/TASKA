@@ -934,3 +934,61 @@ function aiDecomposeTaskText(title, description) {
   return parseGeminiJson(responseText, 'розбиття на кроки');
 }
 
+// ==========================================
+// ========= Proactive Nudges ===============
+// ==========================================
+
+// Rule-based, not an LLM call — cheap enough to run on every page load and
+// inside the daily digest without worrying about latency or Gemini quota.
+const NUDGE_OVERLOADED_DAY_THRESHOLD = 4;
+const NUDGE_STALE_TASK_DAYS = 5; // matches PROJECT_STALE_DANGER_DAYS on the client
+
+/**
+ * Surfaces things worth a user's attention without them having to ask:
+ * a day with too many deadlines, or an in-progress task that has not been
+ * touched in a while. Shared by the in-app banner and the daily email digest.
+ * @returns {Array} Array of {type, text}
+ */
+function getProactiveNudges() {
+  const tasks = getTasks();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const nudges = [];
+
+  const dueToday = tasks.filter(function (t) {
+    if (t.Статус === 'Виконано' || !t.Дедлайн) return false;
+    const d = new Date(t.Дедлайн);
+    if (isNaN(d)) return false;
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  });
+
+  if (dueToday.length >= NUDGE_OVERLOADED_DAY_THRESHOLD) {
+    nudges.push({
+      type: 'overloaded_day',
+      text: 'Сьогодні дедлайн у ' + dueToday.length + ' задач — забагато на один день, варто щось перенести.'
+    });
+  }
+
+  const now = new Date();
+  tasks.forEach(function (t) {
+    // "Нова" tasks simply have not been started yet — that's not staleness.
+    // Only flag work that was picked up and then went quiet.
+    if (t.Статус !== 'В роботі' || !t['Дата оновлення']) return;
+
+    const updated = new Date(t['Дата оновлення']);
+    if (isNaN(updated)) return;
+
+    const days = Math.floor((now - updated) / (1000 * 60 * 60 * 24));
+    if (days >= NUDGE_STALE_TASK_DAYS) {
+      nudges.push({
+        type: 'stale_task',
+        text: 'Задача "' + t.Назва + '" в роботі вже ' + days + ' дн. без оновлень.'
+      });
+    }
+  });
+
+  return nudges;
+}
+

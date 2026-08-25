@@ -73,7 +73,9 @@ function sendDailyDigest() {
     else if (d.getTime() === today.getTime()) dueToday.push(t);
   });
 
-  if (overdue.length === 0 && dueToday.length === 0) return;
+  const nudges = getProactiveNudges();
+
+  if (overdue.length === 0 && dueToday.length === 0 && nudges.length === 0) return;
 
   const lines = ['Доброго ранку! Ось стан твоїх задач на сьогодні.', ''];
 
@@ -93,9 +95,22 @@ function sendDailyDigest() {
     lines.push('');
   }
 
+  if (nudges.length > 0) {
+    lines.push('🧠 ПІДКАЗКИ:');
+    nudges.forEach(function (n) {
+      lines.push('- ' + n.text);
+    });
+    lines.push('');
+  }
+
+  let subject = '📋 TaskApp: ' + overdue.length + ' прострочено, ' + dueToday.length + ' на сьогодні';
+  if (overdue.length === 0 && dueToday.length === 0) {
+    subject = '📋 TaskApp: ' + nudges.length + ' підказ' + (nudges.length === 1 ? 'ка' : 'ки');
+  }
+
   MailApp.sendEmail({
     to: Session.getActiveUser().getEmail(),
-    subject: '📋 TaskApp: ' + overdue.length + ' прострочено, ' + dueToday.length + ' на сьогодні',
+    subject: subject,
     body: lines.join('\n')
   });
 }

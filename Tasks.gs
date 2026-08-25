@@ -88,11 +88,19 @@ function saveTask(task) {
     sheet.getRange(1, headers.length).setValue('CalendarEventID');
   }
 
+  if (!headers.includes('Дата оновлення')) {
+    headers.push('Дата оновлення');
+    sheet.getRange(1, headers.length).setValue('Дата оновлення');
+  }
+
   // Ensure steps are stringified for storage
   const taskToSave = {...task};
   if (taskToSave['Кроки'] && typeof taskToSave['Кроки'] !== 'string') {
     taskToSave['Кроки'] = JSON.stringify(taskToSave['Кроки']);
   }
+
+  // Every save counts as touching the task — mirrors how Projects tracks staleness.
+  taskToSave['Дата оновлення'] = new Date();
 
   let rowIndex = -1;
   let existingRow = null;
