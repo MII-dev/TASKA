@@ -5875,25 +5875,51 @@
             const isFav = !!contact.Обраний;
 
             const actions = [];
-            if (contact.Телефон) {
-                actions.push(`<a class="contact-quick-btn" href="tel:${contact.Телефон}" onclick="event.stopPropagation()" title="Зателефонувати">📞 ${contact.Телефон}</a>`);
+            const phone = contact.Телефон;
+            const email = contact.Email;
+
+            if (phone) {
+                let html = '<a class="contact-quick-btn" href="tel:' + phone + '"';
+                html += ' onclick="event.stopPropagation()" title="Зателефонувати">';
+                html += '📞 ' + phone + '</a>';
+                actions.push(html);
             }
-            if (contact.Email) {
-                actions.push(`<a class="contact-quick-btn" href="mailto:${contact.Email}" onclick="event.stopPropagation()" title="Написати листа">✉️ ${contact.Email}</a>`);
+
+            if (email) {
+                let html = '<a class="contact-quick-btn" href="mailto:' + email + '"';
+                html += ' onclick="event.stopPropagation()" title="Написати листа">';
+                html += '✉️ ' + email + '</a>';
+                actions.push(html);
             }
+
             if (contact.Telegram) {
                 const handle = contact.Telegram.replace(/^@/, '');
-                actions.push(`<a class="contact-quick-btn" href="https://t.me/${handle}" target="_blank" onclick="event.stopPropagation()" title="Написати в Telegram">📨 Telegram</a>`);
+                const telegramUrl = 'https:' + '//t.me/' + handle;
+                let html = '<a class="contact-quick-btn" href="' + telegramUrl + '" target="_blank"';
+                html += ' onclick="event.stopPropagation()" title="Написати в Telegram">';
+                html += '📨 Telegram</a>';
+                actions.push(html);
             }
-            if (contact.Телефон) {
-                actions.push(`<button type="button" class="contact-quick-btn" onclick="copyContactValue('${contact.Телефон}', event)" title="Скопіювати номер">📋 Копіювати</button>`);
+
+            if (phone) {
+                let html = '<button type="button" class="contact-quick-btn"';
+                html += ' onclick="copyContactValue(\'' + phone + '\', event)" title="Скопіювати номер">';
+                html += '📋 Копіювати</button>';
+                actions.push(html);
             }
+
+            const favClass = isFav ? 'is-favorite' : '';
+            const favIcon = isFav ? '★' : '☆';
+            const favTitle = isFav ? 'Прибрати з обраних' : 'Додати в обрані';
+            let favBtn = '<button type="button" class="icon-btn contact-favorite-btn ' + favClass + '"';
+            favBtn += ' onclick="toggleContactFavorite(\'' + contact.ID + '\', event)" title="' + favTitle + '">';
+            favBtn += favIcon + '</button>';
 
             return `
                 <div class="contact-card" onclick="openContactModal('${contact.ID}')">
                     <div class="contact-card-header">
                         <div class="contact-name">${name}</div>
-                        <button type="button" class="icon-btn contact-favorite-btn ${isFav ? 'is-favorite' : ''}" onclick="toggleContactFavorite('${contact.ID}', event)" title="${isFav ? 'Прибрати з обраних' : 'Додати в обрані'}">${isFav ? '★' : '☆'}</button>
+                        ${favBtn}
                     </div>
                     ${posLine ? `<div class="contact-pos">${posLine}</div>` : ''}
                     ${contact.Категорія ? `<span class="tag-category ${catClass}">${contact.Категорія}</span>` : ''}
