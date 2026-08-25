@@ -1408,6 +1408,23 @@
                 })
                 .withFailureHandler(err => console.error('Failed to load nudges:', err))
                 .getProactiveNudges();
+
+            // Fetched separately, since a Gemini call is slower than the rule-based
+            // list above — the banner should not wait on it to appear.
+            google.script.run
+                .withSuccessHandler(briefing => {
+                    if (!briefing) return;
+                    const banner = document.getElementById('nudgesBanner');
+                    const list = document.getElementById('nudgesList');
+                    const p = document.createElement('div');
+                    p.id = 'nudgesAiBriefing';
+                    p.style.cssText = 'margin-bottom: 0.5rem; color: var(--text-main); font-size: 0.85rem;';
+                    p.textContent = briefing;
+                    list.parentNode.insertBefore(p, list);
+                    banner.style.display = 'flex';
+                })
+                .withFailureHandler(err => console.error('Failed to load AI briefing:', err))
+                .getAiProactiveBriefing();
         }
 
         function checkReminderStatus() {

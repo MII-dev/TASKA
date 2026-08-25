@@ -77,7 +77,14 @@ function sendDailyDigest() {
 
   if (overdue.length === 0 && dueToday.length === 0 && nudges.length === 0) return;
 
-  const lines = ['Доброго ранку! Ось стан твоїх задач на сьогодні.', ''];
+  const lines = [];
+  const briefing = getAiProactiveBriefing();
+  if (briefing) {
+    lines.push(briefing);
+  } else {
+    lines.push('Доброго ранку! Ось стан твоїх задач на сьогодні.');
+  }
+  lines.push('');
 
   if (overdue.length > 0) {
     lines.push('ПРОСТРОЧЕНО (' + overdue.length + '):');

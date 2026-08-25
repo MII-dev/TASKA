@@ -1084,3 +1084,64 @@ function getProactiveNudges() {
   return nudges.concat(getCalendarConflictNudges());
 }
 
+/**
+ * Turns the raw overdue/due-today lists and getProactiveNudges() output into
+ * a short, prioritized narrative via Gemini — advice rather than a data
+ * dump. Shared by the in-app banner and the daily email digest, both of
+ * which still show the raw facts underneath so nothing is lost if the
+ * narrative misses something.
+ * @returns {string|null} null when there's nothing to report, or when Gemini
+ *   isn't configured/available — callers fall back to the raw list either way.
+ */
+function getAiProactiveBriefing() {
+  if (!getApiKey()) return null;
+
+  const tasks = getTasks();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const active = tasks.filter(function (t) { return t.Статус !== 'Виконано'; });
+  const overdue = [];
+  const dueToday = [];
+  active.forEach(function (t) {
+    if (!t.Дедлайн) return;
+    const d = new Date(t.Дедлайн);
+    if (isNaN(d)) return;
+    d.setHours(0, 0, 0, 0);
+    if (d < today) overdue.push(t);
+    else if (d.getTime() === today.getTime()) dueToday.push(t);
+  });
+
+  const nudges = getProactiveNudges();
+  if (overdue.length === 0 && dueToday.length === 0 && nudges.length === 0) return null;
+
+  let raw = '';
+  if (overdue.length > 0) {
+    raw += 'Прострочено (' + overdue.length + '): ' + overdue.map(function (t) { return t.Назва; }).join(', ') + '\n';
+  }
+  if (dueToday.length > 0) {
+    raw += 'Дедлайн сьогодні (' + dueToday.length + '): ' + dueToday.map(function (t) { return t.Назва; }).join(', ') + '\n';
+  }
+  if (nudges.length > 0) {
+    raw += 'Інші сигнали:\n' + nudges.map(function (n) { return '- ' + n.text; }).join('\n') + '\n';
+  }
+
+  const systemInstruction = `Ти — асистент TaskApp, готуєш коротку проактивну пораду власнику задач.
+Тобі дано сирі факти: прострочені задачі, задачі з дедлайном сьогодні, та інші сигнали
+(перевантажений день, застигла задача, конфлікт у календарі).
+
+Напиши 2-4 речення українською, які:
+- Називають найкритичніше, за що братися першим, і коротко пояснюють чому.
+- Не перелічують дослівно всі факти — це вже видно в списку нижче під твоєю порадою.
+- Звучать як порада колеги, а не як звіт.
+
+Без вступів на кшталт "Ось твоя порада". Одразу до суті. Без markdown, без списків — суцільний текст.`;
+
+  try {
+    return callGeminiAI(raw, systemInstruction, false).trim();
+  } catch (e) {
+    Logger.log('AI briefing не вдався, лишаємось на сирих nudges: ' + e.message);
+    return null;
+  }
+}
+
