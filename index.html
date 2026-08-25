@@ -10,36 +10,64 @@
     <title>TaskApp - Управління задачами</title>
     <style>
         :root {
-            /* VS Code Dark Theme */
-            --primary: #007acc;
-            --primary-hover: #1a8ad4;
-            --primary-light: rgba(0, 122, 204, 0.2);
-            --bg-body: #1e1e1e;
-            --bg-card: #252526;
-            --bg-card-hover: #2d2d2d;
-            --bg-sidebar: #252526;
-            --bg-input: #3c3c3c;
-            --text-main: #d4d4d4;
-            --text-muted: #808080;
-            --border: #3c3c3c;
+            /* Modern dark SaaS palette */
+            --primary: #5b7cfa;
+            --primary-hover: #7c96ff;
+            --primary-light: rgba(91, 124, 250, 0.16);
+            --bg-body: #0c0e12;
+            --bg-card: #14171d;
+            --bg-card-hover: #1a1e26;
+            --bg-sidebar: #14171d;
+            --bg-input: #090a0d;
+            --text-main: #eceef2;
+            --text-muted: #97a0b0;
+            --border: #232830;
 
-            --status-new-bg: rgba(86, 156, 214, 0.15);
-            --status-new-text: #569cd6;
-            --status-prog-bg: rgba(220, 220, 170, 0.15);
-            --status-prog-text: #dcdcaa;
-            --status-rev-bg: rgba(197, 134, 192, 0.15);
-            --status-rev-text: #c586c0;
-            --status-done-bg: rgba(78, 201, 176, 0.15);
-            --status-done-text: #4ec9b0;
+            --status-new-bg: rgba(124, 150, 255, 0.15);
+            --status-new-text: #7c96ff;
+            --status-prog-bg: rgba(242, 184, 75, 0.15);
+            --status-prog-text: #f2b84b;
+            --status-rev-bg: rgba(167, 139, 250, 0.15);
+            --status-rev-text: #a78bfa;
+            --status-done-bg: rgba(52, 211, 153, 0.15);
+            --status-done-text: #34d399;
 
-            --radius-lg: 6px;
-            --radius-md: 4px;
-            --radius-sm: 3px;
+            --danger: #f2685c;
+            --danger-bg: rgba(242, 104, 92, 0.12);
+            --accent-purple: #7c4dff;
+            --accent-purple-light: #b794f6;
 
-            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.25);
-            --shadow-md: 0 2px 6px -1px rgb(0 0 0 / 0.35);
-            --shadow-lg: 0 4px 12px -2px rgb(0 0 0 / 0.4);
-            --shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 0.5);
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+            --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+            --shadow-lg: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 36px -14px rgb(0 0 0 / 0.55);
+            --shadow-hover: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 36px -14px rgb(91 124 250 / 0.28);
+
+            /* Spacing scale */
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --space-8: 2rem;
+
+            /* Type scale */
+            --text-xs: 0.72rem;
+            --text-sm: 0.82rem;
+            --text-base: 0.9rem;
+            --text-md: 1rem;
+            --text-lg: 1.25rem;
+            --text-xl: 1.5rem;
+            --text-2xl: 1.75rem;
+
+            /* Motion */
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: 0.15s;
+            --transition-base: 0.2s;
         }
 
         * {
@@ -55,6 +83,12 @@
             line-height: 1.6;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+            border-radius: var(--radius-sm);
         }
 
         .container {
@@ -75,7 +109,7 @@
             font-size: 2.5rem;
             font-weight: 800;
             letter-spacing: -0.03em;
-            color: #d4d4d4;
+            color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -107,7 +141,7 @@
         .btn-primary:hover {
             transform: translateY(-1px);
             background: var(--primary-hover);
-            box-shadow: 0 2px 8px rgba(0, 122, 204, 0.3);
+            box-shadow: 0 2px 8px rgba(91, 124, 250, 0.3);
         }
 
         .btn-outline {
@@ -117,7 +151,7 @@
         }
 
         .btn-outline:hover {
-            background-color: #3c3c3c;
+            background-color: var(--bg-input);
         }
 
         .controls {
@@ -125,7 +159,7 @@
             gap: 1rem;
             margin-bottom: 1.5rem;
             flex-wrap: wrap;
-            background: #252526;
+            background: var(--bg-card);
             padding: 0.75rem 1rem;
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
@@ -136,9 +170,9 @@
             min-width: 200px;
             padding: 0.6rem 1rem;
             border-radius: var(--radius-sm);
-            border: 1px solid #3c3c3c;
-            background: #3c3c3c;
-            color: #cccccc;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
             transition: all 0.2s;
@@ -147,7 +181,8 @@
         .search-input:focus {
             border-color: var(--primary);
             outline: none;
-            background: #3c3c3c;
+            background: var(--bg-input);
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
         .task-list {
@@ -162,7 +197,7 @@
             padding: 0.5rem 0.85rem;
             border-radius: var(--radius-sm);
             box-shadow: var(--shadow-sm);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all var(--transition-base) var(--ease);
             position: relative;
             cursor: pointer;
             display: flex;
@@ -304,7 +339,7 @@
             z-index: 1000;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.2s ease;
+            transition: all var(--transition-base) ease;
         }
 
         .modal-overlay.active {
@@ -313,7 +348,7 @@
         }
 
         .modal {
-            background: #252526;
+            background: var(--bg-card);
             width: 100%;
             max-width: 650px;
             padding: 2rem;
@@ -324,7 +359,7 @@
             transform: scale(0.97) translateY(10px);
             opacity: 0;
             transition: all 0.25s ease;
-            border: 1px solid #3c3c3c;
+            border: 1px solid var(--border);
         }
 
         .modal-overlay.active .modal {
@@ -334,7 +369,7 @@
 
         #modalTitle {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.75rem;
+            font-size: var(--text-2xl);
             margin-bottom: 2rem;
             color: var(--text-main);
         }
@@ -357,12 +392,12 @@
             width: 100%;
             padding: 0.6rem 0.85rem;
             border-radius: var(--radius-sm);
-            border: 1px solid #3c3c3c;
-            background: #3c3c3c;
-            color: #cccccc;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-size: var(--text-base);
+            transition: all var(--transition-base) var(--ease);
         }
 
         .form-group input:focus,
@@ -370,6 +405,7 @@
         .form-group select:focus {
             border-color: var(--primary);
             outline: none;
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
         .form-group textarea {
@@ -390,7 +426,7 @@
         .loader {
             width: 48px;
             height: 48px;
-            border: 3px solid #3c3c3c;
+            border: 3px solid var(--border);
             border-bottom-color: var(--primary);
             border-radius: 50%;
             display: inline-block;
@@ -412,9 +448,9 @@
             padding: 4rem 2rem;
             color: var(--text-muted);
             grid-column: 1 / -1;
-            background: #252526;
+            background: var(--bg-card);
             border-radius: var(--radius-md);
-            border: 1px dashed #3c3c3c;
+            border: 1px dashed var(--border);
         }
 
         .empty-state svg {
@@ -502,18 +538,18 @@
         }
 
         .stat-icon.active-tasks {
-            background: rgba(0, 122, 204, 0.15);
-            color: #007acc;
+            background: rgba(91, 124, 250, 0.15);
+            color: var(--primary);
         }
 
         .stat-icon.done-tasks {
-            background: rgba(78, 201, 176, 0.15);
-            color: #4ec9b0;
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--status-done-text);
         }
 
         .stat-icon.overdue-tasks {
-            background: rgba(244, 71, 71, 0.15);
-            color: #f44747;
+            background: rgba(242, 104, 92, 0.15);
+            color: var(--danger);
         }
 
         .stat-info h4 {
@@ -540,7 +576,7 @@
         }
 
         .kanban-column {
-            background: #1e1e1e;
+            background: var(--bg-body);
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
             display: flex;
@@ -577,28 +613,116 @@
 
         /* Priority Colors — VS Code style */
         .priority-Високий {
-            border-left: 3px solid #f44747 !important;
+            border-left: 3px solid var(--danger) !important;
         }
 
         .priority-Середній {
-            border-left: 3px solid #dcdcaa !important;
+            border-left: 3px solid var(--status-prog-text) !important;
         }
 
         .priority-Низький {
-            border-left: 3px solid #569cd6 !important;
+            border-left: 3px solid var(--status-new-text) !important;
         }
 
         /* Tag Style — VS Code style */
         .tag-category {
-            background: rgba(197, 134, 192, 0.12);
-            color: #c586c0;
+            background: rgba(167, 139, 250, 0.12);
+            color: var(--status-rev-text);
             padding: 0.1rem 0.4rem;
-            border-radius: 3px;
+            border-radius: var(--radius-sm);
             font-size: 0.65rem;
             font-weight: 600;
-            border: 1px solid rgba(197, 134, 192, 0.25);
+            border: 1px solid rgba(167, 139, 250, 0.25);
             white-space: nowrap;
             flex-shrink: 0;
+        }
+
+        .tag-category-accent {
+            background: rgba(124, 150, 255, 0.12);
+            color: var(--status-new-text);
+            border-color: rgba(124, 150, 255, 0.25);
+        }
+
+        .tag-category-success {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--status-done-text);
+            border-color: rgba(52, 211, 153, 0.25);
+        }
+
+        /* Shared status-text utilities — deadlines, staleness labels, inline confirmations */
+        .text-overdue {
+            color: var(--danger) !important;
+            font-weight: 600;
+        }
+
+        .text-today {
+            color: var(--status-prog-text) !important;
+            font-weight: 600;
+        }
+
+        .text-done-accent {
+            color: var(--status-done-text);
+            font-weight: 600;
+        }
+
+        .btn-done-sm {
+            padding: 0.15rem 0.45rem;
+            font-size: 0.7rem;
+            border-color: var(--status-done-text);
+            color: var(--status-done-text);
+            border-radius: var(--radius-sm);
+            box-shadow: none;
+            flex-shrink: 0;
+        }
+
+        /* Mini checklist rendered inline on a task card */
+        .card-steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 0.4rem;
+            padding: 0.45rem 0.65rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 0.25rem;
+        }
+
+        .card-step-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.76rem;
+            color: var(--text-main);
+            margin: 0;
+            padding: 2px 0;
+        }
+
+        .card-step-item.is-done {
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .card-step-checkbox {
+            width: 13px !important;
+            height: 13px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            accent-color: var(--primary) !important;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .card-step-text {
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            min-width: 0;
+            flex: 1;
         }
 
         /* Inline Notes — VS Code style */
@@ -606,25 +730,25 @@
             width: 100%;
             background: transparent;
             border: 1px solid transparent;
-            color: #808080;
-            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-size: var(--text-xs);
             font-family: 'Inter', sans-serif;
             resize: none;
             padding: 0.15rem 0.4rem;
-            border-radius: 3px;
-            transition: all 0.15s;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast) var(--ease);
             min-height: 6rem;
             margin-top: 0.15rem;
         }
 
         .inline-notes:hover {
-            background: #2d2d2d;
+            background: var(--bg-card-hover);
         }
 
         .inline-notes:focus {
-            background: #3c3c3c;
+            background: var(--bg-input);
             border-color: var(--primary);
-            color: #cccccc;
+            color: var(--text-main);
             outline: none;
             min-height: 6rem;
         }
@@ -674,7 +798,7 @@
             justify-content: space-between;
             padding: 0.85rem 1rem;
             border-bottom: 1px solid var(--border);
-            background: #1e1e1e;
+            background: var(--bg-body);
         }
 
         .calendar-widget-title {
@@ -690,7 +814,7 @@
         .calendar-tabs {
             display: flex;
             gap: 2px;
-            background: #1e1e1e;
+            background: var(--bg-body);
             border-radius: var(--radius-sm);
             padding: 2px;
         }
@@ -715,7 +839,7 @@
 
         .calendar-tab:not(.active):hover {
             color: var(--text-main);
-            background: #3c3c3c;
+            background: var(--bg-input);
         }
 
         .calendar-events-list {
@@ -732,7 +856,7 @@
             gap: 0.6rem;
             padding: 0.55rem 0.65rem;
             border-radius: var(--radius-sm);
-            background: #1e1e1e;
+            background: var(--bg-body);
             border: 1px solid transparent;
             transition: all 0.2s;
             position: relative;
@@ -740,13 +864,13 @@
         }
 
         .calendar-event:hover {
-            background: #2d2d2d;
+            background: var(--bg-card-hover);
             border-color: rgba(255, 255, 255, 0.05);
         }
 
         .calendar-event.event-now {
-            background: rgba(0, 122, 204, 0.08);
-            border-color: rgba(0, 122, 204, 0.2);
+            background: rgba(91, 124, 250, 0.08);
+            border-color: rgba(91, 124, 250, 0.2);
         }
 
         .calendar-event.event-now::after {
@@ -758,7 +882,7 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #4ec9b0;
+            background: var(--status-done-text);
             animation: pulse-dot 2s ease-in-out infinite;
         }
 
@@ -801,7 +925,7 @@
         .event-time-allday {
             font-size: 0.68rem;
             font-weight: 600;
-            color: #c586c0;
+            color: var(--status-rev-text);
             line-height: 1.2;
         }
 
@@ -852,7 +976,7 @@
         }
 
         .calendar-day-divider.today {
-            color: #4ec9b0;
+            color: var(--status-done-text);
         }
 
         .calendar-empty {
@@ -913,43 +1037,43 @@
         }
 
         .event-join-btn.meet {
-            background: rgba(78, 201, 176, 0.1);
-            color: #4ec9b0;
-            border-color: rgba(78, 201, 176, 0.3);
+            background: rgba(52, 211, 153, 0.1);
+            color: var(--status-done-text);
+            border-color: rgba(52, 211, 153, 0.3);
         }
 
         .event-join-btn.meet:hover {
-            background: rgba(78, 201, 176, 0.25);
+            background: rgba(52, 211, 153, 0.25);
         }
 
         .event-join-btn.zoom {
-            background: rgba(86, 156, 214, 0.1);
-            color: #569cd6;
-            border-color: rgba(86, 156, 214, 0.3);
+            background: rgba(124, 150, 255, 0.1);
+            color: var(--status-new-text);
+            border-color: rgba(124, 150, 255, 0.3);
         }
 
         .event-join-btn.zoom:hover {
-            background: rgba(86, 156, 214, 0.25);
+            background: rgba(124, 150, 255, 0.25);
         }
 
         .event-join-btn.teams {
-            background: rgba(197, 134, 192, 0.1);
-            color: #c586c0;
-            border-color: rgba(197, 134, 192, 0.3);
+            background: rgba(167, 139, 250, 0.1);
+            color: var(--status-rev-text);
+            border-color: rgba(167, 139, 250, 0.3);
         }
 
         .event-join-btn.teams:hover {
-            background: rgba(197, 134, 192, 0.25);
+            background: rgba(167, 139, 250, 0.25);
         }
 
         .event-join-btn.generic {
-            background: rgba(220, 220, 170, 0.1);
-            color: #dcdcaa;
-            border-color: rgba(220, 220, 170, 0.3);
+            background: rgba(242, 184, 75, 0.1);
+            color: var(--status-prog-text);
+            border-color: rgba(242, 184, 75, 0.3);
         }
 
         .event-join-btn.generic:hover {
-            background: rgba(220, 220, 170, 0.25);
+            background: rgba(242, 184, 75, 0.25);
         }
 
         .event-actions {
@@ -967,12 +1091,12 @@
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #007acc 0%, #4ec9b0 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--status-done-text) 100%);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 16px rgba(0, 122, 204, 0.4);
+            box-shadow: 0 4px 16px rgba(91, 124, 250, 0.4);
             cursor: pointer;
             z-index: 999;
             border: none;
@@ -982,7 +1106,7 @@
 
         .ai-chat-fab:hover {
             transform: scale(1.1) rotate(8deg);
-            box-shadow: 0 6px 20px rgba(0, 122, 204, 0.6);
+            box-shadow: 0 6px 20px rgba(91, 124, 250, 0.6);
         }
 
         .ai-chat-fab svg {
@@ -1023,7 +1147,7 @@
             width: 400px;
             height: 600px;
             max-height: calc(100vh - 120px);
-            background: #252526;
+            background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 12px;
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
@@ -1045,7 +1169,7 @@
 
         .ai-chat-header {
             padding: 1rem 1.25rem;
-            background: #1e1e1e;
+            background: var(--bg-body);
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
@@ -1077,7 +1201,7 @@
 
         .ai-chat-header-close:hover {
             color: var(--text-main);
-            background: #3c3c3c;
+            background: var(--bg-input);
         }
 
         .ai-chat-messages {
@@ -1087,12 +1211,12 @@
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            background: #1e1e1e;
+            background: var(--bg-body);
         }
 
         .ai-chat-input-area {
             padding: 1rem;
-            background: #252526;
+            background: var(--bg-card);
             border-top: 1px solid var(--border);
             display: flex;
             gap: 8px;
@@ -1104,7 +1228,7 @@
             padding: 0.65rem 0.85rem;
             border-radius: 6px;
             border: 1px solid var(--border);
-            background: #3c3c3c;
+            background: var(--bg-input);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
@@ -1122,12 +1246,12 @@
             border: none;
             width: 36px;
             height: 36px;
-            border-radius: 6px;
+            border-radius: var(--radius-lg);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--transition-base) var(--ease);
         }
 
         .ai-chat-send:hover {
@@ -1164,7 +1288,7 @@
 
         .ai-msg-bot {
             align-self: flex-start;
-            background: #2d2d2d;
+            background: var(--bg-card-hover);
             color: var(--text-main);
             border-bottom-left-radius: 2px;
             border: 1px solid var(--border);
@@ -1211,7 +1335,7 @@
         }
 
         .ai-quick-btn {
-            background: #2d2d2d;
+            background: var(--bg-card-hover);
             border: 1px solid var(--border);
             color: var(--text-main);
             padding: 0.5rem;
@@ -1227,12 +1351,12 @@
         }
 
         .ai-quick-btn:hover {
-            background: #3c3c3c;
+            background: var(--bg-input);
             border-color: var(--primary);
         }
 
         .ai-action-card {
-            background: rgba(0, 122, 204, 0.1);
+            background: rgba(91, 124, 250, 0.1);
             border: 1px solid var(--primary-light);
             border-radius: 6px;
             padding: 0.75rem;
@@ -1271,7 +1395,7 @@
         }
 
         .ai-action-cancel:hover {
-            background: #3c3c3c !important;
+            background: var(--bg-input) !important;
             color: var(--text-main) !important;
         }
 
@@ -1285,7 +1409,7 @@
             gap: 4px;
             align-items: center;
             padding: 0.5rem 1rem;
-            background: #2d2d2d;
+            background: var(--bg-card-hover);
             border-radius: 8px;
             border-bottom-left-radius: 2px;
             align-self: flex-start;
@@ -1322,8 +1446,8 @@
         }
 
         .ai-setup-banner {
-            background: rgba(220, 220, 170, 0.1);
-            border: 1px solid rgba(220, 220, 170, 0.3);
+            background: rgba(242, 184, 75, 0.1);
+            border: 1px solid rgba(242, 184, 75, 0.3);
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1.5rem;
@@ -1334,7 +1458,7 @@
 
         .ai-setup-banner h4 {
             font-family: 'Outfit', sans-serif;
-            color: #dcdcaa;
+            color: var(--status-prog-text);
             font-size: 0.95rem;
             display: flex;
             align-items: center;
@@ -1347,7 +1471,7 @@
         }
 
         .steps-container {
-            background: #1e1e1e;
+            background: var(--bg-body);
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 0.75rem;
@@ -1400,7 +1524,7 @@
 
         .steps-container .step-text-input:focus {
             border-color: var(--primary) !important;
-            background: #3c3c3c !important;
+            background: var(--bg-input) !important;
         }
 
         .step-text {
@@ -1414,23 +1538,48 @@
             color: var(--text-muted);
         }
 
-        .ai-btn-sm {
-            padding: 0.35rem 0.75rem;
-            font-size: 0.78rem;
-            font-weight: 600;
-            border-radius: 4px;
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
             cursor: pointer;
-            background: rgba(0, 122, 204, 0.15);
-            color: #569cd6;
-            border: 1px solid rgba(86, 156, 214, 0.3);
-            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-base) var(--ease);
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-input);
+        }
+
+        .icon-btn-danger:hover {
+            color: var(--danger);
+        }
+
+        .step-delete-btn {
+            margin-top: 2px;
+        }
+
+        .ai-btn-sm {
+            padding: var(--space-2) var(--space-3);
+            font-size: var(--text-xs);
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            background: rgba(91, 124, 250, 0.15);
+            color: var(--status-new-text);
+            border: 1px solid rgba(124, 150, 255, 0.3);
+            transition: all var(--transition-base) var(--ease);
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: var(--space-1);
         }
 
         .ai-btn-sm:hover {
-            background: rgba(86, 156, 214, 0.3);
+            background: rgba(124, 150, 255, 0.3);
         }
 
         .quick-create-bar {
@@ -1453,13 +1602,35 @@
                 align-items: stretch;
                 gap: 1rem;
             }
+
+            .container {
+                padding: 1.25rem 1rem;
+            }
+
+            .kanban-board {
+                grid-template-columns: minmax(240px, 1fr);
+            }
+
+            .modal {
+                max-width: 100%;
+                padding: 1.25rem;
+                border-radius: var(--radius-md);
+            }
+
+            .ai-chat-panel {
+                right: 0.75rem;
+                left: 0.75rem;
+                width: auto;
+                bottom: 88px;
+                height: min(600px, calc(100vh - 110px));
+            }
         }
 
         /* File Upload & Drag-and-Drop Styles */
         .dropzone-dragover {
             border-color: var(--primary) !important;
-            background: rgba(0, 122, 204, 0.1) !important;
-            box-shadow: inset 0 0 10px rgba(0, 122, 204, 0.15) !important;
+            background: rgba(91, 124, 250, 0.1) !important;
+            box-shadow: inset 0 0 10px rgba(91, 124, 250, 0.15) !important;
         }
 
         .dropzone-dragover svg {
@@ -1533,7 +1704,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
             padding: 1rem;
-            transition: all 0.2s;
+            transition: all var(--transition-base) var(--ease);
             display: flex;
             flex-direction: column;
             gap: 0.4rem;
@@ -1586,7 +1757,7 @@
             border-radius: var(--radius-md);
             padding: 1.1rem;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all var(--transition-base) var(--ease);
             display: flex;
             flex-direction: column;
             gap: 0.6rem;
@@ -1645,11 +1816,17 @@
         }
 
         .project-card-stats .stat-overdue strong {
-            color: #f44747;
+            color: var(--danger);
+        }
+
+        .project-staleness-label {
+            margin-left: 0.6rem;
+            font-size: var(--text-xs);
+            color: var(--text-muted);
         }
 
         .badge-archived {
-            background: rgba(128, 128, 128, 0.18);
+            background: rgba(151, 160, 176, 0.18);
             color: var(--text-muted);
         }
 
@@ -1723,7 +1900,7 @@
         }
 
         .project-link-chip-remove:hover {
-            color: #f44747;
+            color: var(--danger);
         }
 
         .project-contact-row {
@@ -1744,6 +1921,11 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
             padding: 0 0.85rem;
+            transition: border-color var(--transition-base) var(--ease);
+        }
+
+        .project-branch-group:hover {
+            border-color: var(--primary-light);
         }
 
         .project-branch-summary {
@@ -1798,6 +1980,7 @@
         .branch-inline-notes:focus {
             border-color: var(--primary);
             outline: none;
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
         .project-branch-links {
@@ -1831,6 +2014,7 @@
         .list-editor-row input:focus {
             border-color: var(--primary);
             outline: none;
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
         .list-editor-remove {
@@ -1848,8 +2032,8 @@
         }
 
         .list-editor-remove:hover {
-            color: #f44747;
-            background: rgba(244, 71, 71, 0.1);
+            color: var(--danger);
+            background: rgba(242, 104, 92, 0.1);
         }
 
         .list-editor-add {
@@ -1869,7 +2053,7 @@
             padding: 0.65rem 0.85rem;
             border-radius: var(--radius-sm);
             box-shadow: var(--shadow-sm);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all var(--transition-base) var(--ease);
             position: relative;
             display: flex;
             align-items: flex-start;
@@ -1934,7 +2118,7 @@
 
         .clickup-priority-flag {
             padding: 0.1rem 0.4rem;
-            border-radius: 3px;
+            border-radius: var(--radius-sm);
             font-size: 0.65rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -1943,8 +2127,8 @@
         }
 
         .clickup-priority-1 {
-            background: rgba(244, 71, 71, 0.15);
-            color: #f44747;
+            background: rgba(242, 104, 92, 0.15);
+            color: var(--danger);
         }
 
         .clickup-priority-2 {
@@ -1953,13 +2137,13 @@
         }
 
         .clickup-priority-3 {
-            background: rgba(220, 220, 170, 0.15);
-            color: #dcdcaa;
+            background: rgba(242, 184, 75, 0.15);
+            color: var(--status-prog-text);
         }
 
         .clickup-priority-4 {
-            background: rgba(86, 156, 214, 0.15);
-            color: #569cd6;
+            background: rgba(124, 150, 255, 0.15);
+            color: var(--status-new-text);
         }
 
         .clickup-status-badge {
@@ -1987,17 +2171,18 @@
             align-items: center;
             gap: 0.3rem;
             padding: 0.2rem 0.55rem;
-            border-radius: 4px;
-            font-size: 0.72rem;
+            border-radius: var(--radius-md);
+            font-size: var(--text-xs);
             font-weight: 600;
             font-family: 'Inter', sans-serif;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: all var(--transition-base) var(--ease);
             white-space: nowrap;
             flex-shrink: 0;
             border: 1px solid rgba(124, 77, 255, 0.3);
             background: rgba(124, 77, 255, 0.1);
-            color: #b794f6;
+            color: var(--accent-purple-light);
+            cursor: pointer;
         }
 
         .clickup-open-link:hover {
@@ -2026,7 +2211,7 @@
 
         .clickup-setup-banner h4 {
             font-family: 'Outfit', sans-serif;
-            color: #b794f6;
+            color: var(--accent-purple-light);
             font-size: 0.95rem;
             display: flex;
             align-items: center;
@@ -2059,9 +2244,9 @@
             border-radius: 3px;
             font-size: 0.62rem;
             font-weight: 600;
-            background: rgba(197, 134, 192, 0.12);
-            color: #c586c0;
-            border: 1px solid rgba(197, 134, 192, 0.25);
+            background: rgba(167, 139, 250, 0.12);
+            color: var(--status-rev-text);
+            border: 1px solid rgba(167, 139, 250, 0.25);
             white-space: nowrap;
         }
 
@@ -2126,7 +2311,7 @@
 
         .comment-content {
             font-size: 0.82rem;
-            color: #d4d4d4;
+            color: var(--text-main);
             line-height: 1.4;
             white-space: pre-wrap;
             word-break: break-word;
@@ -2149,20 +2334,20 @@
             padding: 0.5rem 0.75rem;
             font-size: 0.85rem;
             border-radius: var(--radius-sm);
-            border: 1px solid #3c3c3c;
-            background: #3c3c3c;
-            color: #cccccc;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
             transition: all 0.2s;
         }
 
         .comment-input-area textarea:focus {
-            border-color: #7c4dff;
+            border-color: var(--accent-purple);
             outline: none;
         }
 
         .comment-send-btn {
-            background: #7c4dff;
+            background: var(--accent-purple);
             color: white;
             border: none;
             cursor: pointer;
@@ -2235,13 +2420,13 @@
         .clickup-inline-select:hover,
         .clickup-date-input:hover {
             border-color: var(--border);
-            background-color: #3c3c3c;
+            background-color: var(--bg-input);
         }
 
         .clickup-inline-select:focus,
         .clickup-date-input:focus {
-            border-color: #7c4dff;
-            background-color: #3c3c3c;
+            border-color: var(--accent-purple);
+            background-color: var(--bg-input);
         }
 
         .clickup-inline-select:disabled,
@@ -2251,20 +2436,20 @@
         }
 
         .clickup-inline-select option {
-            background: #252526;
+            background: var(--bg-card);
             color: var(--text-main);
             text-transform: none;
             font-weight: 500;
         }
 
         @keyframes clickup-saved-flash {
-            0% { box-shadow: 0 0 0 0 rgba(78, 201, 176, 0.6); }
-            100% { box-shadow: 0 0 0 6px rgba(78, 201, 176, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+            100% { box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
         }
 
         .clickup-saved {
             animation: clickup-saved-flash 0.7s ease-out;
-            border-color: #4ec9b0 !important;
+            border-color: var(--status-done-text) !important;
         }
 
         /* ===== ClickUp Task Creator ===== */
@@ -2319,34 +2504,34 @@
             border-radius: 3px;
             font-size: 0.65rem;
             font-weight: 600;
-            background: rgba(86, 156, 214, 0.12);
-            color: #569cd6;
-            border: 1px solid rgba(86, 156, 214, 0.25);
+            background: rgba(124, 150, 255, 0.12);
+            color: var(--status-new-text);
+            border: 1px solid rgba(124, 150, 255, 0.25);
             white-space: nowrap;
         }
 
         .clickup-time-badge.over-estimate {
-            background: rgba(244, 71, 71, 0.12);
-            color: #f44747;
-            border-color: rgba(244, 71, 71, 0.3);
+            background: rgba(242, 104, 92, 0.12);
+            color: var(--danger);
+            border-color: rgba(242, 104, 92, 0.3);
         }
 
         .clickup-time-bar {
             height: 5px;
             border-radius: 3px;
-            background: #1e1e1e;
+            background: var(--bg-body);
             overflow: hidden;
             border: 1px solid var(--border);
         }
 
         .clickup-time-bar-fill {
             height: 100%;
-            background: #569cd6;
+            background: var(--status-new-text);
             transition: width 0.3s;
         }
 
         .clickup-time-bar-fill.over-estimate {
-            background: #f44747;
+            background: var(--danger);
         }
 
         /* ===== ClickUp Date Grouping ===== */
@@ -2370,13 +2555,13 @@
         }
 
         .clickup-group-header.group-overdue {
-            color: #f44747;
-            border-bottom-color: rgba(244, 71, 71, 0.3);
+            color: var(--danger);
+            border-bottom-color: rgba(242, 104, 92, 0.3);
         }
 
         .clickup-group-header.group-today {
-            color: #dcdcaa;
-            border-bottom-color: rgba(220, 220, 170, 0.3);
+            color: var(--status-prog-text);
+            border-bottom-color: rgba(242, 184, 75, 0.3);
         }
 
         .clickup-group-count {
@@ -2437,7 +2622,7 @@
         }
 
         .clickup-toggle input {
-            accent-color: #7c4dff;
+            accent-color: var(--accent-purple);
             width: 15px;
             height: 15px;
             cursor: pointer;
@@ -2447,9 +2632,9 @@
             padding: 0.5rem 0.85rem;
             margin-bottom: 0.75rem;
             border-radius: var(--radius-sm);
-            background: rgba(220, 220, 170, 0.08);
-            border-left: 3px solid #dcdcaa;
-            color: #dcdcaa;
+            background: rgba(242, 184, 75, 0.08);
+            border-left: 3px solid var(--status-prog-text);
+            color: var(--status-prog-text);
             font-size: 0.78rem;
         }
 
@@ -2470,10 +2655,10 @@
         .clickup-details-desc {
             font-size: 0.85rem;
             line-height: 1.55;
-            color: #d4d4d4;
+            color: var(--text-main);
             white-space: pre-wrap;
             word-break: break-word;
-            background: #1e1e1e;
+            background: var(--bg-body);
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             padding: 0.75rem 0.85rem;
@@ -2507,7 +2692,7 @@
         }
 
         .clickup-checklist {
-            background: #1e1e1e;
+            background: var(--bg-body);
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             padding: 0.6rem 0.75rem;
@@ -2562,8 +2747,8 @@
                     stroke-linecap="round" stroke-linejoin="round">
                     <defs>
                         <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#007acc" />
-                            <stop offset="100%" stop-color="#4ec9b0" />
+                            <stop offset="0%" stop-color="var(--primary)" />
+                            <stop offset="100%" stop-color="var(--status-done-text)" />
                         </linearGradient>
                     </defs>
                     <path
@@ -2586,7 +2771,7 @@
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button class="btn btn-outline" onclick="openFileUploadModal()"
-                    style="border-color: rgba(0, 122, 204, 0.4); color: #569cd6;"
+                    style="border-color: rgba(91, 124, 250, 0.4); color: var(--status-new-text);"
                     title="Створити задачу з PDF/Word файлу за допомогою ШІ">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2598,7 +2783,7 @@
                     📄 З файлу
                 </button>
                 <a href="https://meet.google.com/new" target="_blank" class="btn btn-outline"
-                    style="border-color: rgba(78, 201, 176, 0.4); color: #4ec9b0; text-decoration: none;"
+                    style="border-color: rgba(52, 211, 153, 0.4); color: var(--status-done-text); text-decoration: none;"
                     title="Розпочати нову зустріч у Google Meet">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2647,7 +2832,7 @@
                             <strong>Gemini
                                 API Key</strong>.
                             Отримати безкоштовний ключ можна в <a href="https://aistudio.google.com/apikey"
-                                target="_blank" style="color: #569cd6; text-decoration: underline;">Google AI
+                                target="_blank" style="color: var(--status-new-text); text-decoration: underline;">Google AI
                                 Studio</a>.
                         </p>
                         <div class="ai-setup-input-group">
@@ -2813,13 +2998,13 @@
                 <p style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 0.25rem;">
                     Для завантаження задач з ClickUp введіть ваш <strong>Personal API Token</strong>.
                     Отримати його можна в <a href="https://app.clickup.com/settings/apps" target="_blank"
-                        style="color: #b794f6; text-decoration: underline;">ClickUp Settings → Apps</a>.
+                        style="color: var(--accent-purple-light); text-decoration: underline;">ClickUp Settings → Apps</a>.
                 </p>
                 <div style="display: flex; gap: 8px;">
                     <input type="password" id="clickUpTokenInput" class="search-input"
                         placeholder="Введіть ClickUp Personal API Token (pk_...)" style="margin-bottom: 0;">
                     <button class="btn btn-primary" onclick="saveClickUpToken()"
-                        style="padding: 0.5rem 1rem; background: #7c4dff; flex-shrink: 0;">Зберегти</button>
+                        style="padding: 0.5rem 1rem; background: var(--accent-purple); flex-shrink: 0;">Зберегти</button>
                 </div>
             </div>
 
@@ -2827,7 +3012,7 @@
                 <div class="clickup-stats" id="clickUpStats"></div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <button class="btn btn-outline" onclick="loadClickUpTasks()"
-                        style="padding: 0.5rem 0.75rem; border-color: rgba(124, 77, 255, 0.4); color: #b794f6;"
+                        style="padding: 0.5rem 0.75rem; border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);"
                         title="Оновити задачі з ClickUp">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
                             viewBox="0 0 24 24">
@@ -2921,21 +3106,21 @@
 
             <div class="modal-footer" style="margin-top: 1.25rem; padding-top: 1rem;">
                 <button type="button" class="btn btn-outline" id="clickUpDetailsBriefBtn"
-                    style="margin-right: 0.5rem; border-color: rgba(78, 201, 176, 0.4); color: #4ec9b0;"
+                    style="margin-right: 0.5rem; border-color: rgba(52, 211, 153, 0.4); color: var(--status-done-text);"
                     title="Стислий підсумок задачі разом з усім обговоренням">
                     ✨ AI Бриф
                 </button>
                 <button type="button" class="btn btn-outline" id="clickUpDetailsToLocalBtn"
-                    style="margin-right: auto; border-color: rgba(0, 122, 204, 0.4); color: #569cd6;"
+                    style="margin-right: auto; border-color: rgba(91, 124, 250, 0.4); color: var(--status-new-text);"
                     title="Створити задачу в TaskApp на основі цієї">
                     ➕ У TaskApp
                 </button>
                 <button type="button" class="btn btn-outline" id="clickUpDetailsCommentsBtn"
-                    style="border-color: rgba(124, 77, 255, 0.4); color: #b794f6;">
+                    style="border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);">
                     💬 Коментарі
                 </button>
                 <a id="clickUpDetailsOpenLink" href="#" target="_blank" class="btn btn-outline"
-                    style="text-decoration: none; border-color: rgba(124, 77, 255, 0.4); color: #b794f6;">
+                    style="text-decoration: none; border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);">
                     Відкрити у ClickUp
                 </a>
                 <button type="button" class="btn btn-primary" onclick="closeClickUpDetails()">Закрити</button>
@@ -3158,7 +3343,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline"
-                        style="margin-right: auto; color: #f44747; border-color: rgba(244, 71, 71, 0.3);" id="deleteBtn"
+                        style="margin-right: auto; color: var(--danger); border-color: rgba(242, 104, 92, 0.3);" id="deleteBtn"
                         onclick="handleDelete()" hidden>
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
                             viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -3215,7 +3400,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline"
-                        style="margin-right: auto; color: #f44747; border-color: rgba(244, 71, 71, 0.3);"
+                        style="margin-right: auto; color: var(--danger); border-color: rgba(242, 104, 92, 0.3);"
                         id="projectDeleteBtn" onclick="handleProjectDelete()" hidden>
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
                             viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -3263,7 +3448,7 @@
             </div>
 
             <div id="selectedFileSection"
-                style="display: none; margin-top: 1.25rem; padding: 0.75rem 1rem; background: rgba(0, 122, 204, 0.08); border-radius: var(--radius-md); border: 1px solid var(--primary-light); align-items: center; justify-content: space-between; gap: 0.5rem;">
+                style="display: none; margin-top: 1.25rem; padding: 0.75rem 1rem; background: rgba(91, 124, 250, 0.08); border-radius: var(--radius-md); border: 1px solid var(--primary-light); align-items: center; justify-content: space-between; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
                     <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"
                         stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
@@ -3277,9 +3462,7 @@
                         <p id="selectedFileSize" style="font-size: 0.72rem; color: var(--text-muted);"></p>
                     </div>
                 </div>
-                <button type="button" onclick="clearSelectedFile()"
-                    style="background: transparent; border: none; padding: 4px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: background 0.2s;"
-                    onmouseover="this.style.background='#3c3c3c'" onmouseout="this.style.background='transparent'"
+                <button type="button" class="icon-btn" onclick="clearSelectedFile()"
                     title="Прибрати файл">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -3297,7 +3480,7 @@
             </div>
 
             <div id="fileUploadError"
-                style="display: none; margin-top: 1.25rem; padding: 0.65rem 0.85rem; background: rgba(244, 71, 71, 0.1); border-left: 3px solid #f44747; border-radius: var(--radius-sm); color: #f44747; font-size: 0.82rem; line-height: 1.4;">
+                style="display: none; margin-top: 1.25rem; padding: 0.65rem 0.85rem; background: rgba(242, 104, 92, 0.1); border-left: 3px solid var(--danger); border-radius: var(--radius-sm); color: var(--danger); font-size: 0.82rem; line-height: 1.4;">
             </div>
 
             <div class="modal-footer"
@@ -3359,7 +3542,7 @@
             if (!project) return '';
             const branch = (project.Гілки || []).find(b => b.id === task['Гілка']);
             const label = branch ? `${project.Назва} / ${branch.name}` : project.Назва;
-            return `<span class="tag-category" style="background: rgba(86, 156, 214, 0.12); color: #569cd6; border-color: rgba(86, 156, 214, 0.25);" title="Проєкт">🗂️ ${label}</span>`;
+            return `<span class="tag-category tag-category-accent" title="Проєкт">🗂️ ${label}</span>`;
         }
 
         function updateDashboard() {
@@ -3433,13 +3616,13 @@
             }
         }
 
-        function getDeadlineColor(dateStr, status) {
+        function getDeadlineClass(dateStr, status) {
             if (!dateStr || status === 'Виконано') return '';
             const d = new Date(dateStr);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            if (d < today) return 'color: #f44747; font-weight: 600;'; // Overdue
-            if (d.getTime() === today.getTime()) return 'color: #dcdcaa; font-weight: 600;'; // Today
+            if (d < today) return 'text-overdue';
+            if (d.getTime() === today.getTime()) return 'text-today';
             return '';
         }
 
@@ -3458,7 +3641,7 @@
 
             const steps = task.Кроки || [];
             const stepsHtml = steps.length > 0 ? `
-                <span class="tag-category" style="background: rgba(78, 201, 176, 0.12); color: #4ec9b0; border-color: rgba(78, 201, 176, 0.25);">
+                <span class="tag-category tag-category-success">
                     🧩 Кроки: ${steps.filter(s => s.done).length}/${steps.length}
                 </span>
             ` : '';
@@ -3467,11 +3650,11 @@
             let miniStepsHtml = '';
             if (steps.length > 0) {
                 miniStepsHtml = `
-                    <div class="card-steps-list" onclick="event.stopPropagation()" style="display: flex; flex-direction: column; gap: 4px; margin-top: 0.4rem; padding: 0.45rem 0.65rem; background: rgba(0, 0, 0, 0.2); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.03); margin-bottom: 0.25rem;">
+                    <div class="card-steps-list" onclick="event.stopPropagation()">
                         ${steps.map((s, sIdx) => `
-                            <label class="card-step-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.76rem; color: ${s.done ? 'var(--text-muted)' : 'var(--text-main)'}; ${s.done ? 'text-decoration: line-through;' : ''} margin: 0; padding: 2px 0;">
-                                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStepInline('${task.ID}', ${sIdx}, this)" style="width: 13px !important; height: 13px !important; padding: 0 !important; margin: 0 !important; border: none !important; background: transparent !important; box-shadow: none !important; accent-color: var(--primary) !important; cursor: pointer; flex-shrink: 0;">
-                                <span style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; min-width: 0; flex: 1;">${s.text}</span>
+                            <label class="card-step-item ${s.done ? 'is-done' : ''}">
+                                <input type="checkbox" class="card-step-checkbox" ${s.done ? 'checked' : ''} onchange="toggleStepInline('${task.ID}', ${sIdx}, this)">
+                                <span class="card-step-text">${s.text}</span>
                             </label>
                         `).join('')}
                     </div>
@@ -3490,8 +3673,8 @@
                             <span class="badge ${getBadgeClass(task.Статус)}">${task.Статус}</span>
                         </div>
                         <div class="task-meta">
-                            <span style="${getDeadlineColor(task.Дедлайн, task.Статус)}">📅 ${formatDate(task.Дедлайн)}</span>
-                            ${task['Дата виконання'] ? `<span style="color: #4ec9b0; font-weight: 600;">✅ ${formatDate(task['Дата виконання'])}</span>` : ''}
+                            <span class="${getDeadlineClass(task.Дедлайн, task.Статус)}">📅 ${formatDate(task.Дедлайн)}</span>
+                            ${task['Дата виконання'] ? `<span class="text-done-accent">✅ ${formatDate(task['Дата виконання'])}</span>` : ''}
                             ${task.Виконавець ? `<span class="tag-assignee">👤 ${task.Виконавець}</span>` : '<span class="tag-assignee">👤 Я</span>'}
                         </div>
                         <div class="card-actions">
@@ -3501,14 +3684,14 @@
                                 </a>
                             ` : ''}
                             ${task.Статус !== 'Виконано' ? `
-                                <button class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; border-color: #4ec9b0; color: #4ec9b0; border-radius: 3px; flex-shrink: 0; box-shadow: none;" onclick="event.stopPropagation(); markAsDone('${task.ID}', this)">
+                                <button class="btn btn-outline btn-done-sm" onclick="event.stopPropagation(); markAsDone('${task.ID}', this)">
                                     ✅ Виконати
                                 </button>
                             ` : ''}
                         </div>
                     </div>
                     ${miniStepsHtml}
-                    <textarea class="inline-notes" placeholder="Нотатки..." onclick="event.stopPropagation()" onchange="saveInlineNotes('${task.ID}', this)" style="margin-top: 0.25rem; min-height: 6rem; padding: 0.15rem 0.4rem; font-size: 0.72rem;">${task.Коментарі || ''}</textarea>
+                    <textarea class="inline-notes" placeholder="Нотатки..." onclick="event.stopPropagation()" onchange="saveInlineNotes('${task.ID}', this)">${task.Коментарі || ''}</textarea>
                 </div>
             `;
         }
@@ -3516,7 +3699,7 @@
         function generateKanbanCardHTML(task, index, dragAttr) {
             const steps = task.Кроки || [];
             const stepsHtml = steps.length > 0 ? `
-                <span class="tag-category" style="background: rgba(78, 201, 176, 0.12); color: #4ec9b0; border-color: rgba(78, 201, 176, 0.25); margin-bottom: 0.3rem;">
+                <span class="tag-category tag-category-success">
                     🧩 Кроки: ${steps.filter(s => s.done).length}/${steps.length}
                 </span>
             ` : '';
@@ -3525,11 +3708,11 @@
             let miniStepsHtml = '';
             if (steps.length > 0) {
                 miniStepsHtml = `
-                    <div class="card-steps-list" onclick="event.stopPropagation()" style="display: flex; flex-direction: column; gap: 4px; margin-top: 0.4rem; padding: 0.45rem 0.65rem; background: rgba(0, 0, 0, 0.2); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.03); margin-bottom: 0.25rem;">
+                    <div class="card-steps-list" onclick="event.stopPropagation()">
                         ${steps.map((s, sIdx) => `
-                            <label class="card-step-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.76rem; color: ${s.done ? 'var(--text-muted)' : 'var(--text-main)'}; ${s.done ? 'text-decoration: line-through;' : ''} margin: 0; padding: 2px 0;">
-                                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStepInline('${task.ID}', ${sIdx}, this)" style="width: 13px !important; height: 13px !important; padding: 0 !important; margin: 0 !important; border: none !important; background: transparent !important; box-shadow: none !important; accent-color: var(--primary) !important; cursor: pointer; flex-shrink: 0;">
-                                <span style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; min-width: 0; flex: 1;">${s.text}</span>
+                            <label class="card-step-item ${s.done ? 'is-done' : ''}">
+                                <input type="checkbox" class="card-step-checkbox" ${s.done ? 'checked' : ''} onchange="toggleStepInline('${task.ID}', ${sIdx}, this)">
+                                <span class="card-step-text">${s.text}</span>
                             </label>
                         `).join('')}
                     </div>
@@ -3548,7 +3731,7 @@
                     </div>
                     ${miniStepsHtml}
                     <div class="task-meta" style="flex-wrap: wrap;">
-                        <span style="${getDeadlineColor(task.Дедлайн, task.Статус)}">📅 ${formatDate(task.Дедлайн)}</span>
+                        <span class="${getDeadlineClass(task.Дедлайн, task.Статус)}">📅 ${formatDate(task.Дедлайн)}</span>
                         ${task.Виконавець ? `<span class="tag-assignee">👤 ${task.Виконавець}</span>` : '<span class="tag-assignee">👤 Я</span>'}
                     </div>
                     <div style="margin-top: 0.3rem; border-top: 1px dashed var(--border); padding-top: 0.3rem;">
@@ -3556,7 +3739,7 @@
                     </div>
                     ${task.Статус !== 'Виконано' ? `
                         <div style="display: flex; justify-content: flex-end; margin-top: 0.25rem;">
-                            <button class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; border-color: #4ec9b0; color: #4ec9b0; border-radius: 3px; box-shadow: none;" onclick="event.stopPropagation(); markAsDone('${task.ID}', this)">
+                            <button class="btn btn-outline btn-done-sm" onclick="event.stopPropagation(); markAsDone('${task.ID}', this)">
                                 ✅ Виконати
                             </button>
                         </div>
@@ -3575,7 +3758,7 @@
             task.Коментарі = newNotes;
 
             const originalBorder = textarea.style.borderColor;
-            textarea.style.borderColor = '#4ec9b0'; // Teal to indicate save in progress/success
+            textarea.style.borderColor = 'var(--status-done-text)';
 
             google.script.run
                 .withSuccessHandler(() => {
@@ -3583,7 +3766,7 @@
                 })
                 .withFailureHandler(err => {
                     alert('Помилка збереження нотаток: ' + err);
-                    textarea.style.borderColor = '#f44747'; // Red for error
+                    textarea.style.borderColor = 'var(--danger)';
                 })
                 .saveTask(task);
         }
@@ -3735,16 +3918,16 @@
         const PROJECT_STALE_DANGER_DAYS = 5;
 
         /**
-         * Inline color for the "last updated" label — same red/yellow accents
-         * getDeadlineColor() uses for overdue/due-today deadlines.
+         * Staleness class for the "last updated" label — same red/yellow accents
+         * getDeadlineClass() uses for overdue/due-today deadlines.
          */
-        function getProjectStalenessColor(dateStr) {
-            if (!dateStr) return 'color: #f44747; font-weight: 600;';
+        function getProjectStalenessClass(dateStr) {
+            if (!dateStr) return 'text-overdue';
             const d = new Date(dateStr);
             if (isNaN(d)) return '';
             const days = Math.round((new Date() - d) / (1000 * 60 * 60 * 24));
-            if (days >= PROJECT_STALE_DANGER_DAYS) return 'color: #f44747; font-weight: 600;';
-            if (days >= PROJECT_STALE_WARN_DAYS) return 'color: #dcdcaa; font-weight: 600;';
+            if (days >= PROJECT_STALE_DANGER_DAYS) return 'text-overdue';
+            if (days >= PROJECT_STALE_WARN_DAYS) return 'text-today';
             return '';
         }
 
@@ -4255,7 +4438,7 @@
             return '<div><strong>' + escapeHtml(label) + ':</strong> ' +
                 '<span style="color: var(--text-muted); text-decoration: line-through;">' + escapeHtml(beforeText) + '</span>' +
                 ' <span style="color: var(--text-muted);">→</span> ' +
-                '<span style="color: #4ec9b0; font-weight: 600;">' + escapeHtml(String(after)) + '</span></div>';
+                '<span style="color: var(--status-done-text); font-weight: 600;">' + escapeHtml(String(after)) + '</span></div>';
         }
 
         /**
@@ -4278,12 +4461,12 @@
 
                 if (action === 'deleteTask') {
                     return '<div>Задача: <strong>' + escapeHtml(task.Назва || '') + '</strong></div>' +
-                        '<div style="color: #f44747; font-size: 0.8rem;">Цю дію не можна скасувати.</div>';
+                        '<div style="color: var(--danger); font-size: 0.8rem;">Цю дію не можна скасувати.</div>';
                 }
                 if (action === 'decomposeTask') {
                     return '<div>Задача: <strong>' + escapeHtml(task.Назва || '') + '</strong></div>' +
                         (task.Кроки && task.Кроки.length > 0
-                            ? '<div style="color: #dcdcaa; font-size: 0.8rem;">Наявні ' + task.Кроки.length + ' кроків буде замінено.</div>'
+                            ? '<div style="color: var(--status-prog-text); font-size: 0.8rem;">Наявні ' + task.Кроки.length + ' кроків буде замінено.</div>'
                             : '');
                 }
 
@@ -4336,12 +4519,12 @@
             const card = document.createElement('div');
             card.className = 'ai-action-card';
             if (meta.danger) {
-                card.style.background = 'rgba(244, 71, 71, 0.08)';
-                card.style.borderColor = 'rgba(244, 71, 71, 0.3)';
+                card.style.background = 'rgba(242, 104, 92, 0.08)';
+                card.style.borderColor = 'rgba(242, 104, 92, 0.3)';
             }
 
             const confirmStyle = meta.danger
-                ? 'background: rgba(244, 71, 71, 0.15); color: #f44747; border-color: rgba(244, 71, 71, 0.4);'
+                ? 'background: rgba(242, 104, 92, 0.15); color: var(--danger); border-color: rgba(242, 104, 92, 0.4);'
                 : '';
 
             card.innerHTML =
@@ -4370,7 +4553,7 @@
 
                 google.script.run
                     .withSuccessHandler(function (result) {
-                        card.innerHTML = '<div style="color: #4ec9b0; font-size: 0.85rem;">✅ ' +
+                        card.innerHTML = '<div style="color: var(--status-done-text); font-size: 0.85rem;">✅ ' +
                             escapeHtml((result && result.message) || 'Готово.') + '</div>';
                         loadTasks();
                         if (action === 'createEvent') loadCalendarEvents();
@@ -4587,7 +4770,7 @@
                             <input type="checkbox" class="step-checkbox" ${step.done ? 'checked' : ''} onchange="toggleStep('${taskId}', ${index}, this)" style="margin-top: 5px !important;">
                             <textarea class="step-text-input" oninput="autoResizeTextarea(this)" onchange="editStepText('${taskId}', ${index}, this)" style="${doneStyle}" rows="1">${step.text}</textarea>
                         </div>
-                        <button type="button" onclick="deleteStep('${taskId}', ${index})" style="background: transparent; border: none; color: #808080; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px; transition: all 0.2s; margin-top: 2px;" onmouseover="this.style.color='#f44747'; this.style.background='#3c3c3c'" onmouseout="this.style.color='#808080'; this.style.background='transparent'" title="Видалити крок">
+                        <button type="button" class="icon-btn icon-btn-danger step-delete-btn" onclick="deleteStep('${taskId}', ${index})" title="Видалити крок">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
                         </button>
                     </div>
@@ -5091,7 +5274,7 @@
                     <div class="project-card-stats">
                         <span>Активних: <strong>${activeCount}</strong></span>
                         <span class="stat-overdue">Прострочено: <strong>${overdueCount}</strong></span>
-                        <span style="${getProjectStalenessColor(project['Дата оновлення'])}">🕒 Оновлено: ${formatRelativeTime(project['Дата оновлення'])}</span>
+                        <span class="${getProjectStalenessClass(project['Дата оновлення'])}">🕒 Оновлено: ${formatRelativeTime(project['Дата оновлення'])}</span>
                     </div>
                 </div>
             `;
@@ -5124,6 +5307,15 @@
             const branches = project.Гілки || [];
             const contacts = project.Контакти || [];
 
+            // Link/notes edits re-render this whole view; <details> forgets its
+            // open state on innerHTML replacement, so capture it here and
+            // re-apply it below to avoid the accordion snapping shut mid-edit.
+            const openBranchIds = new Set(
+                Array.from(detail.querySelectorAll('.project-branch-group[data-branch-id]'))
+                    .filter(el => el.open)
+                    .map(el => el.dataset.branchId)
+            );
+
             const contactsHtml = contacts.length > 0
                 ? contacts.map(c => `
                     <div class="project-contact-row">
@@ -5139,7 +5331,7 @@
                 if (links.length === 0) return '';
                 return `<div class="project-branch-links">${links.map((l, li) => `
                     <span style="display: inline-flex; align-items: center; margin: 0 0.4rem 0.4rem 0;">
-                        <a class="project-link-chip" style="margin: 0;" href="${l.url}" target="_blank" rel="noopener">🔗 ${l.label || l.url}</a>
+                        <a class="project-link-chip" style="margin: 0;" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(l.label || l.url)}</a>
                         <button type="button" class="project-link-chip-remove" onclick="deleteBranchLink('${project.ID}', '${branch.id}', ${li})" title="Видалити">×</button>
                     </span>
                 `).join('')}</div>`;
@@ -5152,9 +5344,9 @@
                     ? bTasks.map((t, i) => generateCardHTML(t, i)).join('')
                     : '<p style="color: var(--text-muted); font-size: 0.85rem;">Немає задач у цій гілці.</p>';
                 return `
-                    <details class="project-branch-group">
+                    <details class="project-branch-group" data-branch-id="${b.id}" ${openBranchIds.has(b.id) ? 'open' : ''}>
                         <summary class="project-branch-summary">
-                            <span>🔀 ${b.name}
+                            <span>🔀 ${escapeHtml(b.name)}
                                 <span style="color: var(--text-muted); font-weight: 400;">(${done}/${bTasks.length})</span>
                             </span>
                             <button type="button" class="ai-btn-sm" onclick="event.stopPropagation(); openModalForBranch('${project.ID}', '${b.id}')">➕ Задача</button>
@@ -5172,8 +5364,10 @@
                                 <label class="project-branch-subsection-label">🔗 Посилання гілки</label>
                                 ${renderBranchLinksHtml(project, b)}
                                 <div class="list-editor-row">
-                                    <input type="text" id="branchLinkLabel_${b.id}" placeholder="Назва (документ, репо...)">
-                                    <input type="url" id="branchLinkUrl_${b.id}" placeholder="https://...">
+                                    <input type="text" id="branchLinkLabel_${b.id}" placeholder="Назва (документ, репо...)"
+                                        onkeydown="if(event.key==='Enter')addBranchLink('${project.ID}', '${b.id}')">
+                                    <input type="url" id="branchLinkUrl_${b.id}" placeholder="https://..."
+                                        onkeydown="if(event.key==='Enter')addBranchLink('${project.ID}', '${b.id}')">
                                     <button type="button" class="ai-btn-sm" onclick="addBranchLink('${project.ID}', '${b.id}')">➕</button>
                                 </div>
                             </div>
@@ -5189,7 +5383,7 @@
                     ? unassignedTasks.map((t, i) => generateCardHTML(t, i)).join('')
                     : '<p style="color: var(--text-muted); font-size: 0.85rem;">Немає задач.</p>';
                 branchesTasksHtml += `
-                    <details class="project-branch-group">
+                    <details class="project-branch-group" data-branch-id="__unassigned" ${openBranchIds.has('__unassigned') ? 'open' : ''}>
                         <summary class="project-branch-summary">
                             <span>📋 Без гілки</span>
                             <button type="button" class="ai-btn-sm" onclick="event.stopPropagation(); openModalForBranch('${project.ID}', '')">➕ Задача</button>
@@ -5205,9 +5399,9 @@
                 <button class="project-detail-back" onclick="closeProjectDetail()">← Назад до проєктів</button>
                 <div class="project-detail-header">
                     <div>
-                        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.75rem; color: var(--text-main); margin-bottom: 0.4rem;">${project.Назва}</h2>
+                        <h2 style="font-family: 'Outfit', sans-serif; font-size: var(--text-2xl); color: var(--text-main); margin-bottom: 0.4rem;">${project.Назва}</h2>
                         <span class="badge ${getProjectBadgeClass(project.Статус)}">${project.Статус || ''}</span>
-                        <span style="margin-left: 0.6rem; font-size: 0.8rem; ${getProjectStalenessColor(project['Дата оновлення'])} ${!getProjectStalenessColor(project['Дата оновлення']) ? 'color: var(--text-muted);' : ''}">🕒 Востаннє оновлено: ${formatDate(project['Дата оновлення'])}</span>
+                        <span class="project-staleness-label ${getProjectStalenessClass(project['Дата оновлення'])}">🕒 Востаннє оновлено: ${formatDate(project['Дата оновлення'])}</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="btn btn-outline" onclick="openProjectModal('${project.ID}')">✏️ Редагувати</button>
@@ -5254,7 +5448,7 @@
             branch.notes = newNotes;
 
             const originalBorder = textarea.style.borderColor;
-            textarea.style.borderColor = '#4ec9b0';
+            textarea.style.borderColor = 'var(--status-done-text)';
 
             google.script.run
                 .withSuccessHandler(() => {
@@ -5273,8 +5467,14 @@
 
             const labelInput = document.getElementById('branchLinkLabel_' + branchId);
             const urlInput = document.getElementById('branchLinkUrl_' + branchId);
-            const url = urlInput.value.trim();
+            let url = urlInput.value.trim();
             if (!url) return;
+            // Bare domains/paths (e.g. "docs.google.com/...") are otherwise stored
+            // as-is and resolve as a *relative* link against the app's own URL —
+            // that's the "clicking it goes somewhere weird" bug.
+            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url)) {
+                url = 'https://' + url;
+            }
 
             if (!branch.links) branch.links = [];
             branch.links.push({ label: labelInput.value.trim(), url });
@@ -5518,7 +5718,7 @@
                     renderDirectory(data);
                 })
                 .withFailureHandler(function (err) {
-                    container.innerHTML = '<div style="grid-column: 1/-1; padding: 2rem; color: #f44747; text-align: center;">Помилка завантаження: ' + err + '</div>';
+                    container.innerHTML = '<div style="grid-column: 1/-1; padding: 2rem; color: var(--danger); text-align: center;">Помилка завантаження: ' + err + '</div>';
                 })
                 .getPhoneDirectory();
         }
@@ -5781,14 +5981,14 @@
                     var errMsg = err.message || String(err);
                     if (errMsg.includes('401') || errMsg.includes('Невалідний')) {
                         taskListEl.innerHTML = '<div class="empty-state" style="border: none; background: transparent;">' +
-                            '<svg width="48" height="48" fill="none" stroke="#f44747" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>' +
-                            '<h3 style="color: #f44747;">Невалідний токен</h3>' +
+                            '<svg width="48" height="48" fill="none" stroke="var(--danger)" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>' +
+                            '<h3 style="color: var(--danger);">Невалідний токен</h3>' +
                             '<p style="font-size: 0.85rem;">Перевірте ваш ClickUp API Token і спробуйте ще раз.</p>' +
                             '<button class="btn btn-outline" onclick="clearClickUpToken()" style="margin-top: 1rem; color: var(--text-muted);">🔓 Скинути токен</button>' +
                             '</div>';
                     } else {
                         taskListEl.innerHTML = '<div class="empty-state" style="border: none; background: transparent;">' +
-                            '<h3 style="color: #f44747;">Помилка завантаження</h3>' +
+                            '<h3 style="color: var(--danger);">Помилка завантаження</h3>' +
                             '<p style="font-size: 0.85rem;">' + errMsg + '</p>' +
                             '</div>';
                     }
@@ -5900,7 +6100,7 @@
                 '<span>📅 З дедлайном: <strong>' + withDeadline + '</strong></span>';
 
             if (overdue > 0) {
-                statsHtml += '<span style="color: #f44747;">⚠️ Прострочено: <strong>' + overdue + '</strong></span>';
+                statsHtml += '<span style="color: var(--danger);">⚠️ Прострочено: <strong>' + overdue + '</strong></span>';
             }
             if (totalSpent > 0) {
                 statsHtml += '<span>⏱ Витрачено: <strong>' + formatClickUpDuration(totalSpent) + '</strong></span>';
@@ -5989,9 +6189,9 @@
          */
         function getClickUpDeadlineStyle(timestamp) {
             switch (getClickUpDateBucket(timestamp)) {
-                case 'overdue': return 'color: #f44747; font-weight: 600;';
-                case 'today': return 'color: #dcdcaa; font-weight: 600;';
-                case 'tomorrow': return 'color: #dcdcaa;';
+                case 'overdue': return 'color: var(--danger); font-weight: 600;';
+                case 'today': return 'color: var(--status-prog-text); font-weight: 600;';
+                case 'tomorrow': return 'color: var(--status-prog-text);';
                 default: return '';
             }
         }
@@ -6126,10 +6326,10 @@
                 '</div>' +
                 '</div>' +
                 '<div class="clickup-task-actions">' +
-                '<button class="clickup-open-link" style="cursor: pointer; padding: 0.2rem 0.5rem;" onclick="openClickUpDetails(\'' + task.id + '\')" title="Повний опис і деталі задачі">' +
+                '<button class="clickup-open-link" onclick="openClickUpDetails(\'' + task.id + '\')" title="Повний опис і деталі задачі">' +
                 'ℹ️ Деталі' +
                 '</button>' +
-                '<button class="clickup-open-link" style="cursor: pointer; padding: 0.2rem 0.5rem;" onclick="openClickUpComments(\'' + task.id + '\')" title="Коментарі та апдейти">' +
+                '<button class="clickup-open-link" onclick="openClickUpComments(\'' + task.id + '\')" title="Коментарі та апдейти">' +
                 '💬 Коментарі' +
                 '</button>' +
                 '<a href="' + escapeHtml(task.url) + '" target="_blank" class="clickup-open-link" title="Відкрити у ClickUp">' +
@@ -6194,11 +6394,11 @@
 
         function getClickUpPriorityColor(priority) {
             switch (priority) {
-                case 1: return '#f44747';
+                case 1: return '#f2685c';
                 case 2: return '#ffaa32';
-                case 3: return '#dcdcaa';
-                case 4: return '#569cd6';
-                default: return '#808080';
+                case 3: return '#f2b84b';
+                case 4: return '#7c96ff';
+                default: return '#97a0b0';
             }
         }
 
@@ -6441,7 +6641,7 @@
                 .withFailureHandler(function (err) {
                     document.getElementById('clickUpDetailsLoader').style.display = 'none';
                     document.getElementById('clickUpDetailsBody').innerHTML =
-                        '<div style="color: #f44747; font-size: 0.85rem; padding: 1rem 0;">Не вдалося завантажити деталі: ' +
+                        '<div style="color: var(--danger); font-size: 0.85rem; padding: 1rem 0;">Не вдалося завантажити деталі: ' +
                         escapeHtml(err.message || String(err)) + '</div>';
                 })
                 .getClickUpTaskDetails(taskId, null);
@@ -6609,14 +6809,14 @@
                 html += '<div class="clickup-details-section">' +
                     '<div class="clickup-details-label">Час</div>' +
                     '<div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem;">' +
-                    '<span>Витрачено: <strong style="color: ' + (over ? '#f44747' : '#569cd6') + ';">' + (spent ? formatClickUpDuration(spent) : '—') + '</strong></span>' +
+                    '<span>Витрачено: <strong style="color: ' + (over ? 'var(--danger)' : 'var(--status-new-text)') + ';">' + (spent ? formatClickUpDuration(spent) : '—') + '</strong></span>' +
                     '<span style="color: var(--text-muted);">Оцінка: <strong>' + (estimate ? formatClickUpDuration(estimate) : '—') + '</strong></span>' +
                     '</div>';
 
                 if (estimate > 0) {
                     html += '<div class="clickup-time-bar"><div class="clickup-time-bar-fill' + (over ? ' over-estimate' : '') + '" style="width: ' + percent + '%;"></div></div>';
                     if (over) {
-                        html += '<div style="font-size: 0.72rem; color: #f44747; margin-top: 0.3rem;">Перевищено оцінку на ' + formatClickUpDuration(spent - estimate) + '</div>';
+                        html += '<div style="font-size: 0.72rem; color: var(--danger); margin-top: 0.3rem;">Перевищено оцінку на ' + formatClickUpDuration(spent - estimate) + '</div>';
                     }
                 }
                 html += '</div>';
@@ -6677,7 +6877,7 @@
         }
 
         function hexToRgba(hex, alpha) {
-            if (!hex) return 'rgba(128, 128, 128, ' + alpha + ')';
+            if (!hex) return 'rgba(151, 160, 176, ' + alpha + ')';
             hex = hex.replace('#', '');
             if (hex.length === 3) {
                 hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
@@ -6757,7 +6957,7 @@
                     loader.style.display = 'none';
                     if (commentsListEl.children.length === 0) {
                         commentsListEl.innerHTML = '<div class="empty-state" style="border: none; background: transparent; padding: 1.5rem 1rem;">' +
-                            '<p style="color: #f44747; font-size: 0.85rem;">Помилка завантаження: ' + (err.message || String(err)) + '</p>' +
+                            '<p style="color: var(--danger); font-size: 0.85rem;">Помилка завантаження: ' + (err.message || String(err)) + '</p>' +
                             '</div>';
                     }
                 })
@@ -6878,7 +7078,7 @@
                 </div>
             </div>
         </div>
-        <div style="padding: 0.5rem 1rem; background: #1e1e1e; border-top: 1px solid var(--border);">
+        <div style="padding: 0.5rem 1rem; background: var(--bg-body); border-top: 1px solid var(--border);">
             <div class="ai-quick-actions">
                 <div class="ai-quick-actions-title">Швидкі дії</div>
                 <div class="ai-quick-grid">
