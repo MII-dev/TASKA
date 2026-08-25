@@ -940,13 +940,96 @@ function aiDecomposeTaskText(title, description) {
 
 // Rule-based, not an LLM call — cheap enough to run on every page load and
 // inside the daily digest without worrying about latency or Gemini quota.
-const NUDGE_OVERLOADED_DAY_THRESHOLD = 4;
+const NUDGE_OVERLOADED_DAY_FALLBACK_THRESHOLD = 4; // used when there isn't enough history for a personal baseline
 const NUDGE_STALE_TASK_DAYS = 5; // matches PROJECT_STALE_DANGER_DAYS on the client
+const NUDGE_WORKLOAD_HISTORY_DAYS = 30;
+const NUDGE_WORKLOAD_MIN_SAMPLE_DAYS = 5; // below this, the average is too noisy to trust
+
+/**
+ * Average number of tasks per day that had a deadline on that day, computed
+ * over past days only (today excluded) so today's own count can't dilute
+ * its own baseline. Only counts days that actually had a deadline — a run of
+ * quiet days would otherwise drag the average toward zero and make any
+ * normal day look like an anomaly.
+ * @returns {number|null} null when there isn't enough history to trust the average
+ */
+function computeAvgDailyDeadlineLoad() {
+  const tasks = getTasks();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - NUDGE_WORKLOAD_HISTORY_DAYS);
+
+  const countsByDay = {};
+  tasks.forEach(function (t) {
+    if (!t.Дедлайн) return;
+    const d = new Date(t.Дедлайн);
+    if (isNaN(d)) return;
+    d.setHours(0, 0, 0, 0);
+    if (d < cutoff || d >= today) return;
+    const key = formatDateShort(d);
+    countsByDay[key] = (countsByDay[key] || 0) + 1;
+  });
+
+  const sampleDays = Object.keys(countsByDay);
+  if (sampleDays.length < NUDGE_WORKLOAD_MIN_SAMPLE_DAYS) return null;
+
+  const total = sampleDays.reduce(function (sum, key) { return sum + countsByDay[key]; }, 0);
+  return total / sampleDays.length;
+}
+
+/**
+ * Whether two time ranges overlap. Used for same-day meeting conflicts.
+ */
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && startB < endA;
+}
+
+/**
+ * Finds overlapping (double-booked) calendar events over the next couple of
+ * days. All-day events are excluded — they are not scheduling conflicts in
+ * the way two overlapping meetings are.
+ * @returns {Array} Array of {type, text}
+ */
+function getCalendarConflictNudges() {
+  let events;
+  try {
+    events = getCalendarEvents(2).filter(function (e) { return !e.isAllDay; });
+  } catch (e) {
+    return []; // calendar being unavailable shouldn't break the rest of the nudges
+  }
+
+  const nudges = [];
+  const seen = {}; // dedupes A-vs-B and B-vs-A into one nudge
+
+  for (let i = 0; i < events.length; i++) {
+    for (let j = i + 1; j < events.length; j++) {
+      const a = events[i];
+      const b = events[j];
+      if (!rangesOverlap(new Date(a.start), new Date(a.end), new Date(b.start), new Date(b.end))) continue;
+
+      const key = [a.eventId, b.eventId].sort().join('|');
+      if (seen[key]) continue;
+      seen[key] = true;
+
+      const dateStr = new Date(a.start).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+      const timeA = new Date(a.start).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+      const timeB = new Date(b.start).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+
+      nudges.push({
+        type: 'calendar_conflict',
+        text: 'Накладаються події ' + dateStr + ': "' + a.title + '" (' + timeA + ') та "' + b.title + '" (' + timeB + ').'
+      });
+    }
+  }
+
+  return nudges;
+}
 
 /**
  * Surfaces things worth a user's attention without them having to ask:
- * a day with too many deadlines, or an in-progress task that has not been
- * touched in a while. Shared by the in-app banner and the daily email digest.
+ * an unusually loaded day, double-booked meetings, or an in-progress task
+ * that has gone quiet. Shared by the in-app banner and the daily email digest.
  * @returns {Array} Array of {type, text}
  */
 function getProactiveNudges() {
@@ -964,7 +1047,16 @@ function getProactiveNudges() {
     return d.getTime() === today.getTime();
   });
 
-  if (dueToday.length >= NUDGE_OVERLOADED_DAY_THRESHOLD) {
+  // A personal baseline beats a fixed number — "4 tasks" might be a slow day for
+  // someone who usually closes 10, and a pile-up for someone who usually closes 1.
+  const avgLoad = computeAvgDailyDeadlineLoad();
+  if (avgLoad !== null && dueToday.length >= Math.max(3, Math.ceil(avgLoad * 2))) {
+    nudges.push({
+      type: 'overloaded_day',
+      text: 'Сьогодні дедлайн у ' + dueToday.length + ' задач — це вдвічі більше за твоє звичайне навантаження (~' +
+        avgLoad.toFixed(1) + '/день). Варто щось перенести.'
+    });
+  } else if (avgLoad === null && dueToday.length >= NUDGE_OVERLOADED_DAY_FALLBACK_THRESHOLD) {
     nudges.push({
       type: 'overloaded_day',
       text: 'Сьогодні дедлайн у ' + dueToday.length + ' задач — забагато на один день, варто щось перенести.'
@@ -989,6 +1081,6 @@ function getProactiveNudges() {
     }
   });
 
-  return nudges;
+  return nudges.concat(getCalendarConflictNudges());
 }
 
