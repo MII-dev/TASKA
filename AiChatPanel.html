@@ -1,0 +1,65 @@
+    <!-- AI Chat Panel & FAB -->
+    <button class="ai-chat-fab" id="aiChatFab" onclick="toggleAiChat()" title="ШІ Помічник">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <circle cx="9" cy="9" r="1" fill="currentColor"></circle>
+            <circle cx="15" cy="9" r="1" fill="currentColor"></circle>
+            <path d="M9 13c1.5 1.5 4.5 1.5 6 0" stroke-linecap="round"></path>
+        </svg>
+    </button>
+
+    <div class="ai-chat-panel" id="aiChatPanel">
+        <div class="ai-chat-header">
+            <div class="ai-chat-header-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z"></path>
+                    <path d="M12 6v12M6 12h12"></path>
+                </svg>
+                <span>ШІ Помічник</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 2px;">
+                <button class="ai-chat-header-close" onclick="showApiKeyBanner()" title="Змінити Gemini API ключ">
+                    🔑
+                </button>
+                <button class="ai-chat-header-close" onclick="toggleAiChat()" title="Закрити">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 6L6 18M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="ai-chat-messages" id="aiChatMessages">
+            <div class="ai-msg ai-msg-bot">
+                Привіт! Я твій ШІ-асистент. Я можу створювати задачі, декомпозувати їх на кроки, готувати аналітику та
+                звіти.
+                <div style="margin-top: 8px;">Запитай щось на зразок:
+                    <ul style="margin-top: 4px; font-size: 0.82rem; padding-left: 1rem;">
+                        <li>"Скільки в мене активних задач?"</li>
+                        <li>"Додай задачу: Підготувати звіт до п'ятниці"</li>
+                        <li>"Зроби підсумок мого тижня"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div style="padding: 0.5rem 1rem; background: var(--bg-body); border-top: 1px solid var(--border);">
+            <div class="ai-quick-actions">
+                <div class="ai-quick-actions-title">Швидкі дії</div>
+                <div class="ai-quick-grid">
+                    <button class="ai-quick-btn" onclick="aiQuickAction('summary')">📊 Звіт дня</button>
+                    <button class="ai-quick-btn" onclick="aiQuickAction('prioritize')">🎯 Що робити далі?</button>
+                </div>
+            </div>
+        </div>
+        <div class="ai-chat-input-area">
+            <input type="text" class="ai-chat-input" id="aiChatInput" placeholder="Напишіть запитання..."
+                onkeydown="if(event.key==='Enter')sendAiChatMessage()">
+            <button class="ai-chat-send" onclick="sendAiChatMessage()" title="Надіслати">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>

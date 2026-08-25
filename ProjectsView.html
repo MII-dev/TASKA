@@ -1,0 +1,34 @@
+        <!-- Projects View -->
+        <div id="projectsViewContainer" style="display: none;">
+            <div id="projectsDashboardView">
+                <div class="controls">
+                    <input type="text" class="search-input" id="projectSearchInput" placeholder="Пошук проєктів..."
+                        oninput="filterProjects()">
+                    <select class="search-input" style="flex: 0 1 auto; min-width: 160px;" id="projectStatusFilter"
+                        onchange="filterProjects()">
+                        <option value="all">Усі статуси</option>
+                        <option value="Активний">Активний</option>
+                        <option value="На паузі">На паузі</option>
+                        <option value="Завершено">Завершено</option>
+                        <option value="Архів">Архів</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="openProjectModal()">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5v14M5 12h14"></path>
+                        </svg>
+                        Новий проєкт
+                    </button>
+                </div>
+                <div id="projectsGrid" class="projects-grid">
+                    <div class="empty-state" style="grid-column: 1 / -1; border: none; background: transparent;">
+                        <div class="loader"></div>
+                        <h3 style="margin-top: 1.5rem;">Завантаження...</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div id="projectDetailView" style="display: none;">
+                <!-- Populated by renderProjectDetail() -->
+            </div>
+        </div>

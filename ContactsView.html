@@ -1,0 +1,28 @@
+        <!-- Contacts View -->
+        <div id="contactsViewContainer" style="display: none;">
+            <div class="controls">
+                <input type="text" id="contactSearchInput" class="search-input"
+                    placeholder="Пошук за іменем, посадою, телефоном чи email..." oninput="filterContacts()">
+                <select class="search-input" style="flex: 0 1 auto; min-width: 160px;" id="contactCategoryFilter"
+                    onchange="filterContacts()">
+                    <option value="all">Усі категорії</option>
+                    <option value="Колеги">Колеги</option>
+                    <option value="Клієнти">Клієнти</option>
+                    <option value="Постачальники">Постачальники</option>
+                    <option value="Інше">Інше</option>
+                </select>
+                <button class="btn btn-primary" onclick="openContactModal()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+                        viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Новий контакт
+                </button>
+            </div>
+            <div id="contactsGrid" class="contacts-grid">
+                <div class="empty-state" style="grid-column: 1 / -1; border: none; background: transparent;">
+                    <div class="loader"></div>
+                    <h3 style="margin-top: 1.5rem;">Завантаження...</h3>
+                </div>
+            </div>
+        </div>

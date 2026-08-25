@@ -1,0 +1,74 @@
+        <!-- ClickUp View -->
+        <div id="clickUpViewContainer" style="display: none;">
+            <div id="clickUpSetupBanner" class="clickup-setup-banner" style="display: none;">
+                <h4>🔑 Підключення до ClickUp</h4>
+                <p style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 0.25rem;">
+                    Для завантаження задач з ClickUp введіть ваш <strong>Personal API Token</strong>.
+                    Отримати його можна в <a href="https://app.clickup.com/settings/apps" target="_blank"
+                        style="color: var(--accent-purple-light); text-decoration: underline;">ClickUp Settings → Apps</a>.
+                </p>
+                <div style="display: flex; gap: 8px;">
+                    <input type="password" id="clickUpTokenInput" class="search-input"
+                        placeholder="Введіть ClickUp Personal API Token (pk_...)" style="margin-bottom: 0;">
+                    <button class="btn btn-primary" onclick="saveClickUpToken()"
+                        style="padding: 0.5rem 1rem; background: var(--accent-purple); flex-shrink: 0;">Зберегти</button>
+                </div>
+            </div>
+
+            <div class="clickup-header-bar" id="clickUpHeaderBar" style="display: none;">
+                <div class="clickup-stats" id="clickUpStats"></div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn btn-outline" onclick="loadClickUpTasks()"
+                        style="padding: 0.5rem 0.75rem; border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);"
+                        title="Оновити задачі з ClickUp">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24">
+                            <path d="M23 4v6h-6"></path>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                        Оновити
+                    </button>
+                    <button class="btn btn-outline" onclick="clearClickUpToken()"
+                        style="padding: 0.5rem 0.75rem; color: var(--text-muted); font-size: 0.78rem;"
+                        title="Від'єднати ClickUp">
+                        🔓 Від'єднати
+                    </button>
+                </div>
+            </div>
+
+            <!-- ClickUp Filters and Controls -->
+            <div class="controls" id="clickUpControls"
+                style="display: none; margin-bottom: 1.5rem; border-color: rgba(124, 77, 255, 0.25);">
+                <input type="text" class="search-input" id="clickUpSearchInput"
+                    placeholder="Пошук за назвою, описом, автором, тегом..." oninput="filterClickUpTasks()">
+                <select class="search-input" style="flex: 0 1 auto; min-width: 140px;" id="clickUpStatusFilter"
+                    onchange="filterClickUpTasks()">
+                    <option value="all">Усі статуси</option>
+                </select>
+                <select class="search-input" style="flex: 0 1 auto; min-width: 160px;" id="clickUpSortFilter"
+                    onchange="filterClickUpTasks()">
+                    <option value="default">Сортування: За дедлайном</option>
+                    <option value="priority">За пріоритетом</option>
+                    <option value="name">За назвою</option>
+                </select>
+                <label class="clickup-toggle" title="Групувати задачі за термінами (працює при сортуванні за дедлайном)">
+                    <input type="checkbox" id="clickUpGroupToggle" checked onchange="toggleClickUpGrouping()">
+                    🗓️ Групувати за датою
+                </label>
+                <label class="clickup-toggle" title="Завантажити також закриті задачі з ClickUp">
+                    <input type="checkbox" id="clickUpClosedToggle" onchange="toggleClickUpClosed()">
+                    ✅ Показати виконані
+                </label>
+            </div>
+
+            <div id="clickUpTruncatedNotice" class="clickup-notice" style="display: none;"></div>
+
+            <div id="clickUpLoader" style="display: none; text-align: center; padding: 3rem;">
+                <div class="loader"></div>
+                <p style="margin-top: 1rem; color: var(--text-muted);">Завантаження задач з ClickUp...</p>
+            </div>
+
+            <div id="clickUpTaskList" class="clickup-task-list">
+                <!-- ClickUp tasks will be rendered here -->
+            </div>
+        </div>

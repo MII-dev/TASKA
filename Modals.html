@@ -1,0 +1,477 @@
+    <!-- Modal for ClickUp Task Details -->
+    <div id="clickUpDetailsModal" class="modal-overlay" onclick="if(event.target===this)closeClickUpDetails()">
+        <div class="modal" style="max-width: 680px; display: flex; flex-direction: column; max-height: 88vh;">
+            <h2 id="clickUpDetailsTitle"
+                style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; margin-bottom: 1rem; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; line-height: 1.35;">
+                Деталі задачі
+            </h2>
+
+            <div id="clickUpDetailsLoader" style="display: none; text-align: center; padding: 2.5rem;">
+                <div class="loader" style="width: 32px; height: 32px;"></div>
+                <p style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.85rem;">Завантаження деталей...
+                </p>
+            </div>
+
+            <div id="clickUpDetailsBody" style="overflow-y: auto; flex: 1; padding-right: 6px;">
+                <!-- Details rendered here -->
+            </div>
+
+            <div class="modal-footer" style="margin-top: 1.25rem; padding-top: 1rem;">
+                <button type="button" class="btn btn-outline" id="clickUpDetailsBriefBtn"
+                    style="margin-right: 0.5rem; border-color: rgba(52, 211, 153, 0.4); color: var(--status-done-text);"
+                    title="Стислий підсумок задачі разом з усім обговоренням">
+                    ✨ AI Бриф
+                </button>
+                <button type="button" class="btn btn-outline" id="clickUpDetailsToLocalBtn"
+                    style="margin-right: auto; border-color: rgba(91, 124, 250, 0.4); color: var(--status-new-text);"
+                    title="Створити задачу в TaskApp на основі цієї">
+                    ➕ У TaskApp
+                </button>
+                <button type="button" class="btn btn-outline" id="clickUpDetailsCommentsBtn"
+                    style="border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);">
+                    💬 Коментарі
+                </button>
+                <a id="clickUpDetailsOpenLink" href="#" target="_blank" class="btn btn-outline"
+                    style="text-decoration: none; border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);">
+                    Відкрити у ClickUp
+                </a>
+                <button type="button" class="btn btn-primary" onclick="closeClickUpDetails()">Закрити</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for ClickUp Task Comments -->
+    <div id="clickUpCommentsModal" class="modal-overlay" onclick="if(event.target===this)closeClickUpComments()">
+        <div class="modal" style="max-width: 600px; display: flex; flex-direction: column; max-height: 85vh;">
+            <h2 id="clickUpCommentsModalTitle"
+                style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; margin-bottom: 1.25rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                💬 Коментарі
+            </h2>
+
+            <div id="clickUpCommentsLoader" style="display: none; text-align: center; padding: 2rem;">
+                <div class="loader" style="width: 32px; height: 32px;"></div>
+                <p style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.85rem;">Завантаження коментарів...
+                </p>
+            </div>
+
+            <div id="clickUpCommentsList" class="comments-list">
+                <!-- Comments will be rendered here -->
+            </div>
+
+            <div class="comment-input-area">
+                <textarea id="clickUpCommentInput" placeholder="Напишіть коментар..."
+                    onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendClickUpComment(); }"></textarea>
+                <button id="clickUpCommentSendBtn" class="comment-send-btn" onclick="sendClickUpComment()">
+                    Надіслати
+                </button>
+            </div>
+
+            <div class="modal-footer"
+                style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); justify-content: flex-end;">
+                <button type="button" class="btn btn-outline" onclick="closeClickUpComments()">Закрити</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Add Calendar Event -->
+    <div id="eventModal" class="modal-overlay" onclick="if(event.target===this)closeEventModal()">
+        <div class="modal" style="max-width: 500px;">
+            <h2
+                style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Нова подія в календарі
+            </h2>
+            <form id="eventForm" onsubmit="handleEventSubmit(event)">
+                <div class="form-group">
+                    <label for="eventTitle">Назва події</label>
+                    <input type="text" id="eventTitle" required placeholder="Наприклад: Зустріч з командою">
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <label
+                        style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.85rem; color: var(--text-main); font-weight: 500;">
+                        <input type="checkbox" id="eventAllDay" onchange="toggleAllDay()"
+                            style="accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer;">
+                        Весь день
+                    </label>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="eventStartDate">Дата початку</label>
+                        <input type="date" id="eventStartDate" required>
+                    </div>
+                    <div class="form-group" id="eventStartTimeGroup">
+                        <label for="eventStartTime">Час початку</label>
+                        <input type="time" id="eventStartTime" value="09:00">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="eventEndDate">Дата завершення</label>
+                        <input type="date" id="eventEndDate">
+                    </div>
+                    <div class="form-group" id="eventEndTimeGroup">
+                        <label for="eventEndTime">Час завершення</label>
+                        <input type="time" id="eventEndTime" value="10:00">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventLocation">Місце</label>
+                    <input type="text" id="eventLocation" placeholder="Офіс, Google Meet, Zoom...">
+                </div>
+
+                <div class="form-group">
+                    <label for="eventDescription">Опис</label>
+                    <textarea id="eventDescription" placeholder="Деталі події..." style="min-height: 80px;"></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeEventModal()">Скасувати</button>
+                    <button type="submit" class="btn btn-primary" id="saveEventBtn">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Створити подію
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Task -->
+    <div id="taskModal" class="modal-overlay" onclick="handleOutsideClick(event)">
+        <div class="modal">
+            <h2 id="modalTitle">Створити задачу</h2>
+            <form id="taskForm" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="taskId">
+                <div class="form-group">
+                    <label for="title">Назва задачі</label>
+                    <input type="text" id="title" required placeholder="Що потрібно зробити?">
+                </div>
+                <div class="form-group">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label for="description" style="margin-bottom: 0;">Опис</label>
+                        <button type="button" class="ai-btn-sm" onclick="aiAutofillTask()" id="aiAutofillBtn">
+                            <span>✨ AI автозаповнення</span>
+                        </button>
+                    </div>
+                    <textarea id="description" placeholder="Деталі задачі..."></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="assignee">Виконавець</label>
+                        <input type="text" id="assignee" placeholder="Хто виконує? (порожньо = Ви)">
+                    </div>
+                    <div class="form-group">
+                        <label for="deadline">Дедлайн</label>
+                        <input type="date" id="deadline">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="status">Статус</label>
+                        <select id="status">
+                            <option value="Нова">Нова</option>
+                            <option value="В роботі">В роботі</option>
+                            <option value="На перевірці">На перевірці</option>
+                            <option value="Виконано">Виконано</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Пріоритет</label>
+                        <select id="priority">
+                            <option value="Середній">⚡ Середній</option>
+                            <option value="Високий">🔥 Високий</option>
+                            <option value="Низький">☕ Низький</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Категорія (Тег)</label>
+                        <input type="text" id="category" placeholder="Напр. Розробка">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="taskProject">Проєкт</label>
+                        <select id="taskProject" onchange="populateTaskBranchOptions()">
+                            <option value="">— Без проєкту —</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskBranch">Гілка проєкту</label>
+                        <select id="taskBranch">
+                            <option value="">— Без гілки —</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="comments">Нотатки / Етапи</label>
+                    <textarea id="comments" placeholder="Напишіть тут важливі деталі..."></textarea>
+                </div>
+                <div class="form-group" id="stepsGroup" style="display: none;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label
+                            style="margin-bottom: 0; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Кроки
+                            задачі</label>
+                        <button type="button" class="ai-btn-sm" onclick="aiDecomposeCurrentTask()" id="aiDecomposeBtn">
+                            <span>🧩 Розбити на кроки</span>
+                        </button>
+                    </div>
+                    <div id="stepsContainer" class="steps-container">
+                        <!-- Steps checkboxes will go here -->
+                    </div>
+                    <div class="manual-step-add" style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="newStepInput" class="search-input"
+                            placeholder="Додати новий крок вручну..."
+                            style="font-size: 0.85rem; padding: 0.4rem 0.75rem; margin-bottom: 0;"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); addManualStep(); }">
+                        <button type="button" class="ai-btn-sm" onclick="addManualStep()"
+                            style="flex-shrink: 0; padding: 0.4rem 0.75rem;">
+                            <span>➕ Додати</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="resultLink">Посилання на результат</label>
+                    <input type="url" id="resultLink" placeholder="https://docs.google.com/...">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline"
+                        style="margin-right: auto; color: var(--danger); border-color: rgba(242, 104, 92, 0.3);" id="deleteBtn"
+                        onclick="handleDelete()" hidden>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6">
+                            </path>
+                        </svg>
+                        Видалити
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Скасувати</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div id="projectModal" class="modal-overlay" onclick="handleProjectOutsideClick(event)">
+        <div class="modal">
+            <h2 id="projectModalTitle">Створити проєкт</h2>
+            <form id="projectForm" onsubmit="handleProjectFormSubmit(event)">
+                <input type="hidden" id="projectId">
+                <div class="form-group">
+                    <label for="projectName">Назва проєкту</label>
+                    <input type="text" id="projectName" required placeholder="Напр. Внутрішній портал">
+                </div>
+                <div class="form-group">
+                    <label for="projectDescription">Опис / нотатки</label>
+                    <textarea id="projectDescription" placeholder="Контекст, домовленості, нюанси..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="projectStatus">Статус</label>
+                    <select id="projectStatus">
+                        <option value="Активний">Активний</option>
+                        <option value="На паузі">На паузі</option>
+                        <option value="Завершено">Завершено</option>
+                        <option value="Архів">Архів</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="margin-bottom: 0.5rem; display: block;">🔀 Гілки (напрямки роботи)</label>
+                    <div id="projectBranchesList"></div>
+                    <button type="button" class="ai-btn-sm list-editor-add" onclick="addProjectListRow('branches')">➕
+                        Додати гілку</button>
+                </div>
+
+                <div class="form-group">
+                    <label style="margin-bottom: 0.5rem; display: block;">👤 Контакти / стейкхолдери</label>
+                    <div id="projectContactsList"></div>
+                    <button type="button" class="ai-btn-sm list-editor-add" onclick="addProjectListRow('contacts')">➕
+                        Додати контакт</button>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline"
+                        style="margin-right: auto; color: var(--danger); border-color: rgba(242, 104, 92, 0.3);"
+                        id="projectDeleteBtn" onclick="handleProjectDelete()" hidden>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6">
+                            </path>
+                        </svg>
+                        Видалити
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="closeProjectModal()">Скасувати</button>
+                    <button type="submit" class="btn btn-primary" id="projectSaveBtn">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Contact -->
+    <div id="contactModal" class="modal-overlay" onclick="handleContactOutsideClick(event)">
+        <div class="modal">
+            <h2 id="contactModalTitle">Новий контакт</h2>
+            <form id="contactForm" onsubmit="handleContactFormSubmit(event)">
+                <input type="hidden" id="contactId">
+                <div class="form-group">
+                    <label for="contactName">Ім'я</label>
+                    <input type="text" id="contactName" required placeholder="Напр. Олена Коваль">
+                </div>
+                <div class="form-group">
+                    <label for="contactPosition">Посада</label>
+                    <input type="text" id="contactPosition" placeholder="Напр. Тімлід">
+                </div>
+                <div class="form-group">
+                    <label for="contactCompany">Компанія</label>
+                    <input type="text" id="contactCompany" placeholder="Напр. Acme Inc.">
+                </div>
+                <div class="form-group">
+                    <label for="contactPhone">Телефон</label>
+                    <input type="tel" id="contactPhone" placeholder="+380...">
+                </div>
+                <div class="form-group">
+                    <label for="contactEmail">Email</label>
+                    <input type="email" id="contactEmail" placeholder="name@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="contactTelegram">Telegram</label>
+                    <input type="text" id="contactTelegram" placeholder="@username">
+                </div>
+                <div class="form-group">
+                    <label for="contactCategory">Категорія</label>
+                    <select id="contactCategory">
+                        <option value="">—</option>
+                        <option value="Колеги">Колеги</option>
+                        <option value="Клієнти">Клієнти</option>
+                        <option value="Постачальники">Постачальники</option>
+                        <option value="Інше">Інше</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="clickup-toggle">
+                        <input type="checkbox" id="contactFavorite">
+                        ⭐ Обраний контакт
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="contactNotes">Нотатки</label>
+                    <textarea id="contactNotes" placeholder="Контекст, домовленості..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline"
+                        style="margin-right: auto; color: var(--danger); border-color: rgba(242, 104, 92, 0.3);"
+                        id="contactDeleteBtn" onclick="handleContactDelete()" hidden>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6">
+                            </path>
+                        </svg>
+                        Видалити
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="closeContactModal()">Скасувати</button>
+                    <button type="submit" class="btn btn-primary" id="contactSaveBtn">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Upload File -->
+    <div id="fileUploadModal" class="modal-overlay" onclick="if(event.target===this)closeFileUploadModal()">
+        <div class="modal" style="max-width: 500px;">
+            <h2
+                style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="24" height="24" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                Створення задачі з файлу
+            </h2>
+            <div id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)"
+                ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                <svg width="48" height="48" fill="none" stroke="var(--text-muted)" stroke-width="1.5"
+                    viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin-bottom: 1rem; transition: all 0.3s;" id="dropZoneIcon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p id="dropZoneText" style="font-weight: 600; margin-bottom: 0.25rem;">Перетягніть файл сюди або
+                    натисніть</p>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">Підтримуються PDF, Word (.docx, .doc)</p>
+                <input type="file" id="fileInput" style="display: none;" accept=".pdf,.doc,.docx"
+                    onchange="handleFileSelect(event)">
+            </div>
+
+            <div id="selectedFileSection"
+                style="display: none; margin-top: 1.25rem; padding: 0.75rem 1rem; background: rgba(91, 124, 250, 0.08); border-radius: var(--radius-md); border: 1px solid var(--primary-light); align-items: center; justify-content: space-between; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
+                    <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"
+                        stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <div style="min-width: 0; flex: 1;">
+                        <p id="selectedFileName"
+                            style="font-size: 0.88rem; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-bottom: 0.1rem;">
+                        </p>
+                        <p id="selectedFileSize" style="font-size: 0.72rem; color: var(--text-muted);"></p>
+                    </div>
+                </div>
+                <button type="button" class="icon-btn" onclick="clearSelectedFile()"
+                    title="Прибрати файл">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="fileUploadLoader"
+                style="display: none; text-align: center; margin-top: 1.25rem; flex-direction: column; align-items: center; gap: 0.5rem;">
+                <div class="loader" style="width: 28px; height: 28px; border-width: 2px;"></div>
+                <p id="fileUploadLoaderText" style="font-size: 0.82rem; color: var(--text-muted);">Зчитування файлу...
+                </p>
+            </div>
+
+            <div id="fileUploadError"
+                style="display: none; margin-top: 1.25rem; padding: 0.65rem 0.85rem; background: rgba(242, 104, 92, 0.1); border-left: 3px solid var(--danger); border-radius: var(--radius-sm); color: var(--danger); font-size: 0.82rem; line-height: 1.4;">
+            </div>
+
+            <div class="modal-footer"
+                style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <button type="button" class="btn btn-outline" onclick="closeFileUploadModal()"
+                    id="btnCancelUpload">Скасувати</button>
+                <button type="button" class="btn btn-primary" onclick="processFileWithAI()" id="btnProcessFile"
+                    disabled>Аналізувати ШІ</button>
+            </div>
+        </div>
+    </div>
+
