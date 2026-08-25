@@ -1,7 +1,7 @@
-const SPREADSHEET_ID = '1djbxaGjw1qIpFBZb2P14noEY0iErch1hSOBBxlcXP5k';
+﻿const SPREADSHEET_ID = '1djbxaGjw1qIpFBZb2P14noEY0iErch1hSOBBxlcXP5k';
 const SHEET_NAME = 'Tasks';
 const PROJECTS_SHEET_NAME = 'Projects';
-const DIRECTORY_SPREADSHEET_ID = '1xbaVZaeKf_J_85vJJKpVBNJSu51-HdWo0RVLBTzjo_g';
+const CONTACTS_SHEET_NAME = 'Contacts';
 
 // ==========================================
 // ============ Cache helpers ===============
@@ -1789,52 +1789,108 @@ function testDrive() {
   }
 }
 
+// ==========================================
+// ============== Contacts ==================
+// ==========================================
+
 /**
- * Завантажує та парсить телефонний довідник з окремої таблиці.
+ * Initializes the Contacts sheet with headers if it's empty.
  */
-function getPhoneDirectory() {
-  try {
-    const ss = SpreadsheetApp.openById(DIRECTORY_SPREADSHEET_ID);
-    const sheet = ss.getSheets()[0];
-    const data = sheet.getDataRange().getValues();
-    const fontWeights = sheet.getDataRange().getFontWeights();
-    
-    let currentDepartment = "Загальні контакти";
-    let contacts = [];
-    
-    // Рядок 0 - Заголовки, Рядок 1 - нумерація колонок, починаємо з 2
-    for (let i = 2; i < data.length; i++) {
-      let position = String(data[i][0] || '').trim();
-      let name = String(data[i][1] || '').trim();
-      let personalPhone = String(data[i][2] || '').trim();
-      let corpPhone = String(data[i][3] || '').trim();
-      
-      if (!position && !name) continue; // Порожній рядок
-      
-      let isBold = fontWeights[i][0] === 'bold';
-      
-      // Визначаємо, чи це заголовок відділу
-      if ((isBold && !name) || (!name && position === position.toUpperCase() && position.length > 3)) {
-        // Очищаємо від зайвих пробілів на початку (напр. "  2.1. Відділ радників")
-        currentDepartment = position.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
-        continue;
-      }
-      
-      // Якщо це контакт (або вакантна посада без імені)
-      contacts.push({
-        department: currentDepartment,
-        position: position,
-        name: name,
-        personalPhone: personalPhone,
-        corpPhone: corpPhone
-      });
-    }
-    
-    return contacts;
-  } catch (e) {
-    Logger.log("Помилка завантаження довідника: " + e.message);
-    throw new Error("Не вдалося завантажити довідник. " + e.message);
+function initContactsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(CONTACTS_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(CONTACTS_SHEET_NAME);
   }
+
+  if (sheet.getLastRow() === 0) {
+    const headers = [
+      'ID', 'Дата створення', 'Дата оновлення', "Ім'я", 'Посада', 'Компанія',
+      'Телефон', 'Email', 'Telegram', 'Категорія', 'Обраний', 'Нотатки'
+    ];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Fetches all contacts from the spreadsheet.
+ */
+function getContacts() {
+  const sheet = initContactsSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    let obj = {};
+    headers.forEach((header, i) => {
+      let val = row[i];
+      if (val instanceof Date) {
+        val = val.toISOString();
+      }
+      obj[header] = val;
+    });
+    // Normalize the favorite flag — sheet may hold a real boolean or a stray 'TRUE' string
+    obj['Обраний'] = obj['Обраний'] === true || obj['Обраний'] === 'TRUE';
+    return obj;
+  });
+}
+
+/**
+ * Saves a contact (creates new or updates existing).
+ */
+function saveContact(contact) {
+  const sheet = initContactsSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const contactToSave = {...contact};
+
+  let rowIndex = -1;
+  if (contact.ID) {
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == contact.ID) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  } else {
+    contactToSave.ID = Utilities.getUuid();
+    contactToSave['Дата створення'] = new Date();
+  }
+
+  contactToSave['Дата оновлення'] = new Date();
+
+  // Falls back to '' only for genuinely missing fields — a `false` favorite
+  // flag must survive, unlike the `|| ''` pattern used for text-only rows.
+  const rowValues = headers.map(header => contactToSave[header] !== undefined ? contactToSave[header] : '');
+
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
+  } else {
+    sheet.appendRow(rowValues);
+  }
+
+  return contactToSave.ID;
+}
+
+/**
+ * Deletes a contact by ID.
+ */
+function deleteContact(id) {
+  const sheet = initContactsSheet();
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == id) {
+      sheet.deleteRow(i + 1);
+      return true;
+    }
+  }
+  return false;
 }
 
 // ==========================================
