@@ -1,0 +1,28 @@
+{
+  "name": "taska",
+  "version": "1.0.0",
+  "description": "Personal task/project manager built on Google Apps Script",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "login": "clasp login",
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "open": "clasp open"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MII-dev/TASKA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MII-dev/TASKA/issues"
+  },
+  "homepage": "https://github.com/MII-dev/TASKA#readme",
+  "devDependencies": {
+    "@google/clasp": "^3.4.0"
+  }
+}
