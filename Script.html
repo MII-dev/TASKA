@@ -467,7 +467,10 @@
                 if (task.Дедлайн) {
                     const d = new Date(task.Дедлайн);
                     if (!isNaN(d)) {
-                        document.getElementById('deadline').value = d.toISOString().split('T')[0];
+                        // toDateInputValue() reads local date components — using toISOString()
+                        // here instead shifted the date back a day for any UTC+ timezone,
+                        // since task.Дедлайн already came back from the server as a UTC ISO string.
+                        document.getElementById('deadline').value = toDateInputValue(d);
                     }
                 }
                 document.getElementById('taskProject').value = task['Проєкт'] || '';

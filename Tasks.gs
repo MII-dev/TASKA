@@ -83,18 +83,25 @@ function saveTask(task) {
     sheet.getRange(1, headers.length).setValue('Гілка');
   }
 
+  if (!headers.includes('CalendarEventID')) {
+    headers.push('CalendarEventID');
+    sheet.getRange(1, headers.length).setValue('CalendarEventID');
+  }
+
   // Ensure steps are stringified for storage
   const taskToSave = {...task};
   if (taskToSave['Кроки'] && typeof taskToSave['Кроки'] !== 'string') {
     taskToSave['Кроки'] = JSON.stringify(taskToSave['Кроки']);
   }
-  
+
   let rowIndex = -1;
+  let existingRow = null;
   if (task.ID) {
     // Find existing task by ID
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] == task.ID) {
         rowIndex = i + 1;
+        existingRow = data[i];
         break;
       }
     }
@@ -103,7 +110,19 @@ function saveTask(task) {
     taskToSave.ID = Utilities.getUuid();
     taskToSave['Дата створення'] = new Date();
   }
-  
+
+  // The row snapshot predates this call's header migrations, so a task that
+  // never had a deadline/event column simply reads back undefined here —
+  // treated the same as "no event yet".
+  const deadlineIdx = headers.indexOf('Дедлайн');
+  const eventIdIdx = headers.indexOf('CalendarEventID');
+  const oldDeadline = existingRow ? existingRow[deadlineIdx] : null;
+  const oldEventId = existingRow ? existingRow[eventIdIdx] : null;
+
+  // Always recomputed here rather than trusted from the caller — the sheet
+  // row, not the incoming payload, is the source of truth for what's linked.
+  taskToSave['CalendarEventID'] = syncTaskDeadlineEvent(taskToSave, oldDeadline, oldEventId);
+
   const rowValues = headers.map(header => taskToSave[header] || '');
   
   if (rowIndex > 0) {
@@ -122,9 +141,13 @@ function saveTask(task) {
 function deleteTask(id) {
   const sheet = initSheet();
   const data = sheet.getDataRange().getValues();
-  
+  const eventIdIdx = data[0].indexOf('CalendarEventID');
+
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == id) {
+      if (eventIdIdx !== -1 && data[i][eventIdIdx]) {
+        deleteTaskDeadlineEvent(data[i][eventIdIdx]);
+      }
       sheet.deleteRow(i + 1);
       invalidateAiContextCache();
       return true;

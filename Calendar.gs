@@ -191,3 +191,65 @@ function createCalendarEvent(eventData) {
     end: event.getEndTime().toISOString()
   };
 }
+
+/**
+ * Keeps a task's linked all-day Calendar event in sync with its deadline.
+ * Called from saveTask() on every save; decides whether to create, replace
+ * or remove the event based on what actually changed.
+ * @param {Object} task - The task being saved, with its new field values
+ * @param {Date|string} oldDeadlineRaw - The deadline currently on the sheet row, or falsy for a new task
+ * @param {string} oldEventId - The CalendarEventID currently on the sheet row, or falsy
+ * @returns {string} The event ID to persist on the row, or '' when there is none
+ */
+function syncTaskDeadlineEvent(task, oldDeadlineRaw, oldEventId) {
+  const newDeadline = task['Дедлайн'];
+  const isDone = task['Статус'] === 'Виконано';
+
+  // Done or no deadline — nothing belongs on the calendar
+  if (isDone || !newDeadline) {
+    if (oldEventId) deleteTaskDeadlineEvent(oldEventId);
+    return '';
+  }
+
+  const oldKey = oldDeadlineRaw ? formatDateShort(oldDeadlineRaw) : '';
+  const newKey = formatDateShort(newDeadline);
+
+  // Same deadline, event already exists — nothing to do
+  if (oldEventId && oldKey === newKey) {
+    return oldEventId;
+  }
+
+  return upsertTaskDeadlineEvent(task['Назва'] || 'Задача', newDeadline, oldEventId);
+}
+
+/**
+ * Creates the all-day event mirroring a task's deadline, replacing any
+ * previous linked event for the same task first.
+ * @returns {string} The new event's ID
+ */
+function upsertTaskDeadlineEvent(title, deadlineValue, existingEventId) {
+  if (existingEventId) deleteTaskDeadlineEvent(existingEventId);
+
+  const calendar = CalendarApp.getDefaultCalendar();
+  const event = calendar.createAllDayEvent('📋 ' + title, new Date(deadlineValue), {
+    description: 'Дедлайн задачі TaskApp. Ця подія оновлюється автоматично разом із задачею.'
+  });
+
+  invalidateCalendarCache();
+  return event.getId();
+}
+
+/**
+ * Deletes a task's linked calendar event, tolerating an ID that no longer
+ * resolves to anything (e.g. removed by hand in Calendar).
+ */
+function deleteTaskDeadlineEvent(eventId) {
+  if (!eventId) return;
+  try {
+    const event = CalendarApp.getEventById(eventId);
+    if (event) event.deleteEvent();
+  } catch (e) {
+    Logger.log('Не вдалося видалити подію дедлайну: ' + e.message);
+  }
+  invalidateCalendarCache();
+}
