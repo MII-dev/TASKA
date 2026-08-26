@@ -31,9 +31,10 @@
                 TASKS
             </h1>
             <div class="quick-create-bar">
-                <input type="text" class="search-input" id="quickCreateInput"
-                    placeholder="✨ ШІ-створення: Зробити звіт до п'ятниці..."
-                    onkeydown="if(event.key==='Enter')quickCreateTask()">
+                <textarea class="search-input" id="quickCreateInput" rows="1"
+                    placeholder="✨ ШІ-створення: Зробити звіт до п'ятниці... (Enter — новий рядок, Ctrl+Enter — створити)"
+                    onkeydown="handleQuickCreateKeydown(event)" oninput="autoGrowQuickCreate()"
+                    onfocus="expandQuickCreate()" onblur="collapseQuickCreateIfEmpty()"></textarea>
                 <button class="btn btn-primary" onclick="quickCreateTask()" style="padding: 0.55rem 0.85rem;"
                     title="Створити за допомогою ШІ">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"
