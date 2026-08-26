@@ -1,3 +1,25 @@
+    <!-- Quick AI Create Modal -->
+    <div id="quickCreateModal" class="modal-overlay" onclick="if(event.target===this)closeQuickCreateModal()">
+        <div class="modal" style="max-width: 560px;">
+            <h2 style="font-family: 'Outfit', sans-serif; font-size: var(--text-2xl); color: var(--text-main); margin-bottom: 1.25rem;">
+                ✨ Швидке створення задачі</h2>
+            <textarea id="quickCreateModalInput" class="search-input" rows="6"
+                style="width: 100%; resize: vertical; min-height: 140px; line-height: 1.5;"
+                placeholder="Опиши задачу своїми словами: що зробити, для кого, до якого терміну..."
+                onkeydown="handleQuickCreateKeydown(event)"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+                <button class="btn btn-outline" id="quickCreateCancelBtn" onclick="closeQuickCreateModal()">Скасувати</button>
+                <button class="btn btn-primary" id="quickCreateSubmitBtn" onclick="quickCreateTask()" title="Ctrl+Enter">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+                        viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Створити
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal for ClickUp Task Details -->
     <div id="clickUpDetailsModal" class="modal-overlay" onclick="if(event.target===this)closeClickUpDetails()">
         <div class="modal" style="max-width: 680px; display: flex; flex-direction: column; max-height: 88vh;">

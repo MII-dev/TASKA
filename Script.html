@@ -1133,32 +1133,20 @@
                 .aiMeetingPrep(eventTitle, eventStart);
         }
 
-        function autoGrowQuickCreate() {
-            const el = document.getElementById('quickCreateInput');
-            el.style.height = 'auto';
-            el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+        function openQuickCreateModal() {
+            document.getElementById('quickCreateInput').blur();
+            document.getElementById('quickCreateModal').classList.add('active');
+            // Focusing before the fade/scale-in transition finishes fights the
+            // browser's own scroll-into-view behavior, so give it a beat.
+            setTimeout(() => document.getElementById('quickCreateModalInput').focus(), 50);
         }
 
-        function resetQuickCreateHeight() {
-            const el = document.getElementById('quickCreateInput');
-            el.style.height = 'auto';
-            el.style.minHeight = '';
-        }
-
-        // Opens up to writing room on click, rather than only growing line by
-        // line as text is typed — the single collapsed row was the original complaint.
-        function expandQuickCreate() {
-            const el = document.getElementById('quickCreateInput');
-            el.style.minHeight = '84px';
-        }
-
-        function collapseQuickCreateIfEmpty() {
-            const el = document.getElementById('quickCreateInput');
-            if (!el.value.trim()) resetQuickCreateHeight();
+        function closeQuickCreateModal() {
+            document.getElementById('quickCreateModal').classList.remove('active');
         }
 
         function handleQuickCreateKeydown(event) {
-            // Enter alone inserts a newline — the field is for full task
+            // Enter alone inserts a newline — this is for full task
             // descriptions, not one-liners, so Enter can't double as submit.
             if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
                 event.preventDefault();
@@ -1167,20 +1155,27 @@
         }
 
         function quickCreateTask() {
-            const input = document.getElementById('quickCreateInput');
+            const input = document.getElementById('quickCreateModalInput');
             const text = input.value.trim();
             if (!text) return;
 
-            const originalPlaceholder = input.placeholder;
+            const submitBtn = document.getElementById('quickCreateSubmitBtn');
+            const cancelBtn = document.getElementById('quickCreateCancelBtn');
+            const originalBtnHtml = submitBtn.innerHTML;
+
             input.disabled = true;
-            input.value = "ШІ аналізує текст та готує задачу...";
-            resetQuickCreateHeight();
+            submitBtn.disabled = true;
+            cancelBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loader" style="width: 16px; height: 16px; border-width: 2px; margin: 0;"></div> Аналізую...';
 
             google.script.run
                 .withSuccessHandler(taskData => {
                     input.disabled = false;
+                    submitBtn.disabled = false;
+                    cancelBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
                     input.value = "";
-                    resetQuickCreateHeight();
+                    closeQuickCreateModal();
 
                     openModal();
 
@@ -1190,15 +1185,13 @@
                     if (taskData.Дедлайн) document.getElementById('deadline').value = taskData.Дедлайн;
                     if (taskData.Пріоритет) document.getElementById('priority').value = taskData.Пріоритет;
                     if (taskData.Тип) document.getElementById('category').value = taskData.Тип;
-
-                    input.placeholder = originalPlaceholder;
                 })
                 .withFailureHandler(err => {
                     alert('Помилка створення задачі: ' + err);
                     input.disabled = false;
-                    input.value = text;
-                    autoGrowQuickCreate();
-                    input.placeholder = originalPlaceholder;
+                    submitBtn.disabled = false;
+                    cancelBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
                 })
                 .aiCreateTask(text);
         }
