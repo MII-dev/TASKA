@@ -389,12 +389,44 @@
                     </select>
                 </div>
 
+                <div id="specDraftBox" class="ai-setup-banner" style="display: none;">
+                    <h4>✨ Створити чернетку ШІ</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 0.5rem;">
+                        Коротко опиши мету чи ідею — ШІ згенерує чернетку ТВ з розділами, включно з відкритими
+                        питаннями, які варто уточнити.
+                    </p>
+                    <div class="ai-setup-input-group">
+                        <input type="text" id="specGoalInput" class="search-input"
+                            placeholder="Напр. Потрібен розділ у застосунку для..." style="margin-bottom: 0;">
+                        <button type="button" class="btn btn-primary" id="specDraftBtn"
+                            onclick="aiDraftRequirementsFromModal()" style="padding: 0.5rem 1rem;">Створити</button>
+                    </div>
+                </div>
+
+                <div id="specFormalizeRow" style="margin-bottom: 1rem; display: none;">
+                    <button type="button" class="btn btn-outline" id="specFormalizeBtn"
+                        onclick="aiFormalizeSpecFromModal()"
+                        style="border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);">
+                        ✨ Сформувати ТЗ з цього ТВ
+                    </button>
+                </div>
+
                 <div class="form-group">
                     <label for="specContent">Зміст (Markdown)</label>
                     <textarea id="specContent" placeholder="Опишіть документ вручну, або скористайтесь ШІ нижче..."
                         oninput="updateSpecContentCharCount()"
                         style="min-height: 300px; font-family: 'Inter', monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
                     <div id="specContentCharCount" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; text-align: right;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="specReviseInstruction">✨ Переписати за інструкцією (ШІ)</label>
+                    <div class="ai-setup-input-group">
+                        <input type="text" id="specReviseInstruction" class="search-input"
+                            placeholder="Напр. Деталізуй розділ про нефункціональні вимоги" style="margin-bottom: 0;">
+                        <button type="button" class="btn btn-outline" id="specReviseBtn"
+                            onclick="aiReviseSpecFromModal()" style="padding: 0.5rem 1rem;">Переписати</button>
+                    </div>
                 </div>
 
                 <div class="modal-footer">

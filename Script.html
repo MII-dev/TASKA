@@ -2198,6 +2198,9 @@
             document.getElementById('specDerivedFrom').value = '';
             updateSpecContentCharCount();
 
+            document.getElementById('specGoalInput').value = '';
+            document.getElementById('specReviseInstruction').value = '';
+
             if (id) {
                 const spec = specsData.find(s => s.ID === id);
                 if (!spec) return;
@@ -2210,12 +2213,16 @@
                 document.getElementById('specStatus').value = spec['Статус'] || 'Чернетка';
                 document.getElementById('specContent').value = spec['Зміст'] || '';
                 document.getElementById('specModalTypeBadge').innerText = spec['Тип'];
+                document.getElementById('specDraftBox').style.display = 'none';
+                document.getElementById('specFormalizeRow').style.display = spec['Тип'] === 'ТВ' ? 'block' : 'none';
             } else {
                 document.getElementById('specModalTitleText').innerText = type === 'ТВ' ? 'Нове ТВ' : 'Нове ТЗ';
                 document.getElementById('specDeleteBtn').hidden = true;
                 document.getElementById('specType').value = type;
                 document.getElementById('specStatus').value = 'Чернетка';
                 document.getElementById('specModalTypeBadge').innerText = type;
+                document.getElementById('specDraftBox').style.display = type === 'ТВ' ? 'flex' : 'none';
+                document.getElementById('specFormalizeRow').style.display = 'none';
             }
 
             updateSpecContentCharCount();
@@ -2236,6 +2243,104 @@
             const len = document.getElementById('specContent').value.length;
             const el = document.getElementById('specContentCharCount');
             el.innerText = len > 35000 ? `${len.toLocaleString('uk-UA')} символів (наближаємось до ліміту)` : '';
+        }
+
+        function aiDraftRequirementsFromModal() {
+            const title = document.getElementById('specTitle').value.trim();
+            const goal = document.getElementById('specGoalInput').value.trim();
+            if (!goal) {
+                alert('Опишіть мету чи ідею — інакше ШІ немає з чого починати.');
+                return;
+            }
+
+            const btn = document.getElementById('specDraftBtn');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Генерація...';
+
+            google.script.run
+                .withSuccessHandler(content => {
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                    document.getElementById('specContent').value = content;
+                    updateSpecContentCharCount();
+                    if (!document.getElementById('specTitle').value.trim() && goal) {
+                        document.getElementById('specTitle').value = goal.slice(0, 80);
+                    }
+                })
+                .withFailureHandler(err => {
+                    alert('Помилка створення чернетки: ' + (err.message || err));
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                })
+                .aiDraftRequirements({
+                    title: title,
+                    goal: goal,
+                    projectId: document.getElementById('specProjectId').value
+                });
+        }
+
+        function aiFormalizeSpecFromModal() {
+            const sourceId = document.getElementById('specId').value;
+            const projectId = document.getElementById('specProjectId').value;
+            const source = specsData.find(s => s.ID === sourceId);
+            if (!source) return;
+
+            const btn = document.getElementById('specFormalizeBtn');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Формування ТЗ...';
+
+            google.script.run
+                .withSuccessHandler(content => {
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                    closeSpecModal();
+                    openSpecModal(null, projectId, 'ТЗ');
+                    document.getElementById('specDerivedFrom').value = sourceId;
+                    document.getElementById('specTitle').value = 'ТЗ: ' + (source.Назва || '');
+                    document.getElementById('specContent').value = content;
+                    updateSpecContentCharCount();
+                })
+                .withFailureHandler(err => {
+                    alert('Помилка формування ТЗ: ' + (err.message || err));
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                })
+                .aiFormalizeSpec(source['Зміст'] || '', projectId);
+        }
+
+        function aiReviseSpecFromModal() {
+            const instruction = document.getElementById('specReviseInstruction').value.trim();
+            const content = document.getElementById('specContent').value;
+            if (!instruction) {
+                alert('Опишіть, що потрібно змінити.');
+                return;
+            }
+            if (!content.trim()) {
+                alert('Спершу додайте зміст документа — переписувати поки що нічого.');
+                return;
+            }
+
+            const btn = document.getElementById('specReviseBtn');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Переписування...';
+
+            google.script.run
+                .withSuccessHandler(revised => {
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                    document.getElementById('specContent').value = revised;
+                    document.getElementById('specReviseInstruction').value = '';
+                    updateSpecContentCharCount();
+                })
+                .withFailureHandler(err => {
+                    alert('Помилка редагування: ' + (err.message || err));
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                })
+                .aiReviseSpec(content, instruction);
         }
 
         function handleSpecFormSubmit(e) {

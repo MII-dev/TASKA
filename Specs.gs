@@ -115,3 +115,115 @@ function deleteSpec(id) {
   }
   return false;
 }
+
+// ==========================================
+// ======= AI: ТВ/ТЗ authoring ==============
+// ==========================================
+
+/**
+ * Builds a lean project-context block for spec drafting — just the
+ * project's own name/description/branch names, not the full getAiContext()
+ * (tasks/calendar/ClickUp) that chat/summary use, since drafting a document
+ * doesn't need that noise.
+ */
+function getProjectContextForSpec(projectId) {
+  if (!projectId) return '';
+  const project = getProjects().find(p => p.ID === projectId);
+  if (!project) return '';
+
+  let context = `Проєкт: "${project.Назва}"\n`;
+  if (project.Опис) context += `Опис проєкту: ${project.Опис}\n`;
+
+  const branches = Array.isArray(project.Гілки) ? project.Гілки : [];
+  if (branches.length > 0) {
+    context += `Існуючі напрямки роботи (гілки): ${branches.map(b => b.name).join(', ')}\n`;
+  }
+
+  return context;
+}
+
+/**
+ * Drafts a ТВ (технічні вимоги) — the loose, exploratory first stage.
+ * Deliberately allowed to be incomplete: an "Відкриті питання" section is
+ * part of the point of a ТВ, not a flaw in the output.
+ * @param {Object} input - {title, goal, projectId}
+ * @returns {string} Markdown document
+ */
+function aiDraftRequirements(input) {
+  const opts = input || {};
+  const projectContext = getProjectContextForSpec(opts.projectId);
+
+  const prompt = `Назва документа: "${opts.title || ''}".\nМета/ідея: ${opts.goal || ''}`;
+
+  const systemInstruction = `Ти — бізнес-аналітик, що допомагає власнику проєкту сформулювати технічні вимоги (ТВ) — перший, чорновий етап перед формальним технічним завданням (ТЗ).
+
+${projectContext ? 'Контекст проєкту:\n' + projectContext + '\n' : ''}
+На основі короткого опису мети/ідеї сформуй документ технічних вимог у форматі Markdown з розділами:
+
+## Проблема / потреба
+## Цільові користувачі
+## Бажаний результат
+## Відомі обмеження
+## Відкриті питання
+
+"Відкриті питання" — це нормально й очікувано: перелічи конкретні питання, відповіді на які потрібні, щоб перейти від ТВ до повноцінного ТЗ. Не вигадуй відповіді на них.
+
+Відповідай українською мовою. Без вступів на кшталт "Ось документ" — одразу починай з "## Проблема / потреба".`;
+
+  return callGeminiAI(prompt, systemInstruction, false);
+}
+
+/**
+ * Formalizes a ТВ into a ТЗ (технічне завдання) — the precise, structured
+ * document that task generation reads from.
+ * @param {string} requirementsContent - The source ТВ's full markdown
+ * @param {string} projectId
+ * @returns {string} Markdown document
+ */
+function aiFormalizeSpec(requirementsContent, projectId) {
+  const projectContext = getProjectContextForSpec(projectId);
+
+  const prompt = `Технічні вимоги (ТВ) для формалізації у ТЗ:\n\n${requirementsContent}`;
+
+  const systemInstruction = `Ти — технічний письменник, що перетворює чорнові технічні вимоги (ТВ) на формальне технічне завдання (ТЗ), готове для планування розробки.
+
+${projectContext ? 'Контекст проєкту:\n' + projectContext + '\n' : ''}
+На основі наданого ТВ сформуй ТЗ у форматі Markdown з розділами:
+
+## Загальна інформація
+## Мета та цілі
+## Опис функціональності
+## Вимоги до інтерфейсу
+## Нефункціональні вимоги
+## Критерії приймання
+## Що поза межами
+
+Правила:
+- Розділ "Відкриті питання" з ТВ потрібно перетворити на конкретні рішення там, де вхідних даних достатньо для обґрунтованого висновку.
+- Де інформації справді не вистачає — прямо зазнач залишену невизначеність у відповідному розділі (наприклад, у "Опис функціональності"), а не вигадуй деталі, яких немає в ТВ.
+- Це формальний документ — уникай розмовного тону, будь конкретним і структурованим.
+
+Відповідай українською мовою. Без вступів — одразу починай з "## Загальна інформація".`;
+
+  return callGeminiAI(prompt, systemInstruction, false);
+}
+
+/**
+ * Revises a spec's full content in response to a free-form instruction.
+ * Works on either ТВ or ТЗ content — type-agnostic, operates on whatever
+ * markdown is passed in. Returns the FULL revised document, not a diff.
+ * @param {string} specContent - Current markdown content
+ * @param {string} instruction - Free-form revision instruction
+ * @returns {string} Revised markdown document
+ */
+function aiReviseSpec(specContent, instruction) {
+  const prompt = `Поточний документ:\n\n${specContent}\n\n---\n\nІнструкція для редагування: ${instruction}`;
+
+  const systemInstruction = `Ти — технічний редактор. Тобі надано документ (технічні вимоги або технічне завдання) та інструкцію, як його змінити.
+
+Застосуй інструкцію та поверни ПОВНИЙ оновлений текст документа (не тільки змінену частину, не diff) у тому ж форматі Markdown, зі збереженням структури розділів, якщо інструкція прямо не просить її змінити.
+
+Відповідай лише текстом документа, українською мовою, без коментарів про те, що було змінено.`;
+
+  return callGeminiAI(prompt, systemInstruction, false);
+}
