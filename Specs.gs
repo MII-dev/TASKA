@@ -209,6 +209,44 @@ ${projectContext ? 'Контекст проєкту:\n' + projectContext + '\n' 
 }
 
 /**
+ * Imports an existing ТВ/ТЗ document from a PDF or Word file.
+ * DOCX goes through plain text extraction only — no Gemini call — since
+ * that's already a faithful transcript and re-running it through the model
+ * would only add cost/latency/paraphrasing risk for no benefit. PDF has no
+ * plain-text-extraction path anywhere in this app, so it goes through
+ * Gemini's file understanding instead, which makes it a reconstruction
+ * rather than a verbatim transcript — callers should tag the result
+ * accordingly (see 'Джерело' handling on the client).
+ * @param {string} base64Data
+ * @param {string} fileName
+ * @param {string} mimeType
+ * @returns {string} Extracted/reconstructed document text
+ */
+function aiImportSpecFromDocument(base64Data, fileName, mimeType) {
+  const isPdf = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
+
+  if (!isPdf) {
+    const text = extractTextFromFile(base64Data, fileName, mimeType);
+    if (!text || text.trim().length === 0) {
+      throw new Error('Не вдалося витягнути текст з документу. Файл може бути порожнім.');
+    }
+    return text;
+  }
+
+  const prompt = `Перетвори наданий PDF документ "${fileName}" на чистий текст у форматі Markdown, зберігаючи структуру розділів документа.`;
+  const systemInstruction = `Ти розпізнаєш вміст PDF документа (технічні вимоги або технічне завдання) та переносиш його в чистий Markdown.
+Зберігай оригінальну структуру розділів та формулювання настільки точно, наскільки можливо — це не переказ, а транскрипція.
+Не додавай власних коментарів, оцінок чи розділів, яких немає в оригіналі.
+Поверни лише текст документа, без вступів.`;
+
+  const text = callGeminiAIWithFile(prompt, systemInstruction, base64Data, 'application/pdf', false);
+  if (!text || text.trim().length === 0) {
+    throw new Error('Не вдалося розпізнати вміст PDF документу.');
+  }
+  return text;
+}
+
+/**
  * Revises a spec's full content in response to a free-form instruction.
  * Works on either ТВ or ТЗ content — type-agnostic, operates on whatever
  * markdown is passed in. Returns the FULL revised document, not a diff.

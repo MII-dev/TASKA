@@ -2179,6 +2179,7 @@
                         <span style="display: flex; gap: 0.5rem;">
                             <button type="button" class="ai-btn-sm" onclick="openSpecModal(null, '${project.ID}', 'ТВ')">➕ Нове ТВ</button>
                             <button type="button" class="ai-btn-sm" onclick="openSpecModal(null, '${project.ID}', 'ТЗ')">➕ Нове ТЗ</button>
+                            <button type="button" class="ai-btn-sm" onclick="openSpecImportModal('${project.ID}')">📎 Імпорт файлу</button>
                         </span>
                     </h3>
                     <label class="project-branch-subsection-label">Технічні вимоги (ТВ)</label>
@@ -2341,6 +2342,149 @@
                     btn.innerText = originalText;
                 })
                 .aiReviseSpec(content, instruction);
+        }
+
+        // ---- ТВ/ТЗ import from PDF/Word ----
+
+        let selectedSpecFile = null;
+        let specImportProjectId = null;
+
+        function openSpecImportModal(projectId) {
+            specImportProjectId = projectId;
+            document.getElementById('specImportType').value = 'ТЗ';
+            clearSelectedSpecFile();
+            document.getElementById('specImportModal').classList.add('active');
+        }
+
+        function closeSpecImportModal() {
+            document.getElementById('specImportModal').classList.remove('active');
+        }
+
+        function handleSpecDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('specDropZone').classList.add('dropzone-dragover');
+        }
+
+        function handleSpecDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('specDropZone').classList.remove('dropzone-dragover');
+        }
+
+        function handleSpecDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('specDropZone').classList.remove('dropzone-dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleSelectedSpecFile(files[0]);
+            }
+        }
+
+        function handleSpecFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleSelectedSpecFile(files[0]);
+            }
+        }
+
+        function handleSelectedSpecFile(file) {
+            const errorDiv = document.getElementById('specFileUploadError');
+            errorDiv.style.display = 'none';
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            const allowed = ['pdf', 'doc', 'docx'];
+            if (!allowed.includes(ext)) {
+                errorDiv.innerText = 'Непідтримуваний формат файлу. Будь ласка, завантажте PDF або Word документ (.doc, .docx).';
+                errorDiv.style.display = 'block';
+                clearSelectedSpecFile();
+                return;
+            }
+
+            if (file.size > 15 * 1024 * 1024) {
+                errorDiv.innerText = 'Файл занадто великий. Максимальний розмір — 15 MB.';
+                errorDiv.style.display = 'block';
+                clearSelectedSpecFile();
+                return;
+            }
+
+            selectedSpecFile = file;
+
+            document.getElementById('specSelectedFileName').innerText = file.name;
+            document.getElementById('specSelectedFileSize').innerText = formatBytes(file.size);
+            document.getElementById('specSelectedFileSection').style.display = 'flex';
+            document.getElementById('btnProcessSpecFile').disabled = false;
+        }
+
+        function clearSelectedSpecFile() {
+            selectedSpecFile = null;
+            document.getElementById('specFileInput').value = '';
+            document.getElementById('specSelectedFileSection').style.display = 'none';
+            document.getElementById('btnProcessSpecFile').disabled = true;
+            document.getElementById('specFileUploadError').style.display = 'none';
+            document.getElementById('specFileUploadLoader').style.display = 'none';
+            document.getElementById('btnProcessSpecFile').style.display = '';
+            document.getElementById('btnCancelSpecUpload').style.display = '';
+        }
+
+        function processSpecFileWithAI() {
+            if (!selectedSpecFile) return;
+
+            const loader = document.getElementById('specFileUploadLoader');
+            const loaderText = document.getElementById('specFileUploadLoaderText');
+            const errorDiv = document.getElementById('specFileUploadError');
+            const btnProcess = document.getElementById('btnProcessSpecFile');
+            const btnCancel = document.getElementById('btnCancelSpecUpload');
+            const chosenType = document.getElementById('specImportType').value;
+
+            errorDiv.style.display = 'none';
+            loader.style.display = 'flex';
+            loaderText.innerText = 'Зчитування та кодування файлу...';
+            btnProcess.disabled = true;
+            btnCancel.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                loaderText.innerText = 'Обробка документу ШІ (це може зайняти до 15-30 сек)...';
+
+                const dataUrl = e.target.result;
+                const base64Data = dataUrl.split(',')[1];
+                const fileName = selectedSpecFile.name;
+                const mimeType = selectedSpecFile.type || getMimeByExt(fileName);
+
+                google.script.run
+                    .withSuccessHandler(function (content) {
+                        loader.style.display = 'none';
+                        btnProcess.disabled = false;
+                        btnCancel.disabled = false;
+
+                        closeSpecImportModal();
+                        openSpecModal(null, specImportProjectId, chosenType);
+                        document.getElementById('specTitle').value = fileName.replace(/\.[^.]+$/, '');
+                        document.getElementById('specContent').value = content;
+                        updateSpecContentCharCount();
+                    })
+                    .withFailureHandler(function (err) {
+                        loader.style.display = 'none';
+                        btnProcess.disabled = false;
+                        btnCancel.disabled = false;
+                        errorDiv.innerText = 'Помилка обробки файлу: ' + (err.message || err);
+                        errorDiv.style.display = 'block';
+                    })
+                    .aiImportSpecFromDocument(base64Data, fileName, mimeType);
+            };
+
+            reader.onerror = function () {
+                loader.style.display = 'none';
+                btnProcess.disabled = false;
+                btnCancel.disabled = false;
+                errorDiv.innerText = 'Помилка читання файлу на клієнті.';
+                errorDiv.style.display = 'block';
+            };
+
+            reader.readAsDataURL(selectedSpecFile);
         }
 
         function handleSpecFormSubmit(e) {

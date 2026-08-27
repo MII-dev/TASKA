@@ -448,6 +448,89 @@
         </div>
     </div>
 
+    <!-- Modal for Importing a ТВ/ТЗ from a PDF/Word file -->
+    <div id="specImportModal" class="modal-overlay" onclick="if(event.target===this)closeSpecImportModal()">
+        <div class="modal" style="max-width: 500px;">
+            <h2
+                style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="24" height="24" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                Імпорт документа
+            </h2>
+
+            <div class="form-group">
+                <label>Це ТВ чи ТЗ?</label>
+                <select id="specImportType">
+                    <option value="ТЗ">ТЗ (формальне технічне завдання)</option>
+                    <option value="ТВ">ТВ (чорнові технічні вимоги)</option>
+                </select>
+            </div>
+
+            <div id="specDropZone" onclick="document.getElementById('specFileInput').click()"
+                ondragover="handleSpecDragOver(event)" ondragleave="handleSpecDragLeave(event)"
+                ondrop="handleSpecDrop(event)">
+                <svg width="48" height="48" fill="none" stroke="var(--text-muted)" stroke-width="1.5"
+                    viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin-bottom: 1rem; transition: all 0.3s;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p style="font-weight: 600; margin-bottom: 0.25rem;">Перетягніть файл сюди або натисніть</p>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">Підтримуються PDF, Word (.docx, .doc)</p>
+                <input type="file" id="specFileInput" style="display: none;" accept=".pdf,.doc,.docx"
+                    onchange="handleSpecFileSelect(event)">
+            </div>
+
+            <div id="specSelectedFileSection"
+                style="display: none; margin-top: 1.25rem; padding: 0.75rem 1rem; background: rgba(91, 124, 250, 0.08); border-radius: var(--radius-md); border: 1px solid var(--primary-light); align-items: center; justify-content: space-between; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
+                    <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"
+                        stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <div style="min-width: 0; flex: 1;">
+                        <p id="specSelectedFileName"
+                            style="font-size: 0.88rem; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-bottom: 0.1rem;">
+                        </p>
+                        <p id="specSelectedFileSize" style="font-size: 0.72rem; color: var(--text-muted);"></p>
+                    </div>
+                </div>
+                <button type="button" class="icon-btn" onclick="clearSelectedSpecFile()" title="Прибрати файл">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="specFileUploadLoader"
+                style="display: none; text-align: center; margin-top: 1.25rem; flex-direction: column; align-items: center; gap: 0.5rem;">
+                <div class="loader" style="width: 28px; height: 28px; border-width: 2px;"></div>
+                <p id="specFileUploadLoaderText" style="font-size: 0.82rem; color: var(--text-muted);">Зчитування файлу...
+                </p>
+            </div>
+
+            <div id="specFileUploadError"
+                style="display: none; margin-top: 1.25rem; padding: 0.65rem 0.85rem; background: rgba(242, 104, 92, 0.1); border-left: 3px solid var(--danger); border-radius: var(--radius-sm); color: var(--danger); font-size: 0.82rem; line-height: 1.4;">
+            </div>
+
+            <div class="modal-footer" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <button type="button" class="btn btn-outline" onclick="closeSpecImportModal()"
+                    id="btnCancelSpecUpload">Скасувати</button>
+                <button type="button" class="btn btn-primary" onclick="processSpecFileWithAI()"
+                    id="btnProcessSpecFile" disabled>Обробити</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal for Add/Edit Contact -->
     <div id="contactModal" class="modal-overlay" onclick="handleContactOutsideClick(event)">
         <div class="modal">
