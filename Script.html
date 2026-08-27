@@ -2547,13 +2547,16 @@
             document.getElementById('specTaskReviewModal').classList.remove('active');
         }
 
-        function getProjectBranchOptionsHtml(selectedValue) {
+        function getProjectBranchOptionsHtml(selectedValue, groupName) {
             const project = projectsData.find(p => p.ID === specReviewProjectId);
             const branches = (project && project.Гілки) || [];
             let html = `<option value="">— Без гілки —</option>`;
             html += branches.map(b =>
                 `<option value="${b.id}" ${selectedValue === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`
             ).join('');
+            if (groupName && groupName !== 'Без групи') {
+                html += `<option value="__new__" ${selectedValue === '__new__' ? 'selected' : ''}>+ Нова гілка: "${escapeHtml(groupName)}"</option>`;
+            }
             return html;
         }
 
@@ -2591,7 +2594,7 @@
                                         <option value="Низький" ${item['Пріоритет'] === 'Низький' ? 'selected' : ''}>Низький</option>
                                     </select>
                                     <select onchange="changeSpecReviewBranch(${index}, this.value)">
-                                        ${getProjectBranchOptionsHtml(item.branchChoice)}
+                                        ${getProjectBranchOptionsHtml(item.branchChoice, item['ГілкаНазва'])}
                                     </select>
                                 </div>
                             </div>
@@ -2639,6 +2642,51 @@
 
             const btn = document.getElementById('specReviewSubmitBtn');
             btn.disabled = true;
+
+            // Phase 4b: exactly one new branch per distinct group that chose
+            // "create new branch", created via a single saveProject() call —
+            // never one project write per task.
+            const newBranchGroups = [...new Set(
+                selected.filter(i => i.branchChoice === '__new__').map(i => i['ГілкаНазва'])
+            )];
+
+            if (newBranchGroups.length === 0) {
+                runSequentialTaskCreate(selected, btn);
+                return;
+            }
+
+            const project = projectsData.find(p => p.ID === specReviewProjectId);
+            if (!project) {
+                runSequentialTaskCreate(selected, btn);
+                return;
+            }
+
+            if (!project.Гілки) project.Гілки = [];
+            const branchIdByGroup = {};
+            newBranchGroups.forEach(groupName => {
+                const newBranch = { id: makeBranchId(), name: groupName, notes: '', links: [] };
+                project.Гілки.push(newBranch);
+                branchIdByGroup[groupName] = newBranch.id;
+            });
+
+            btn.innerText = 'Створення гілок...';
+            google.script.run
+                .withSuccessHandler(() => {
+                    selected.forEach(item => {
+                        if (item.branchChoice === '__new__') {
+                            item.branchChoice = branchIdByGroup[item['ГілкаНазва']] || '';
+                        }
+                    });
+                    runSequentialTaskCreate(selected, btn);
+                })
+                .withFailureHandler(err => {
+                    btn.disabled = false;
+                    alert('Не вдалося створити гілки: ' + (err.message || err));
+                })
+                .saveProject(project);
+        }
+
+        function runSequentialTaskCreate(selected, btn) {
             let created = 0;
             let failed = 0;
 
@@ -2817,11 +2865,17 @@
 
         // ---- Project create/edit modal ----
 
+        // Shared with the spec-task-review "create new branch from a group" flow
+        // (Phase 4b) so the ID format only lives in one place.
+        function makeBranchId() {
+            return 'br_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        }
+
         const PROJECT_LIST_FIELD_CONFIG = {
             branches: {
                 containerId: 'projectBranchesList',
                 fields: [{ key: 'name', type: 'text', placeholder: 'Назва гілки (напр. Backend)' }],
-                makeItem: () => ({ id: 'br_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: '' })
+                makeItem: () => ({ id: makeBranchId(), name: '' })
             },
             contacts: {
                 containerId: 'projectContactsList',
