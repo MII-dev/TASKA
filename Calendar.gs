@@ -227,12 +227,16 @@ function syncTaskDeadlineEvent(task, oldDeadlineRaw, oldEventId) {
  * previous linked event for the same task first.
  * @returns {string} The new event's ID
  */
+// Prefixed onto every auto-synced deadline event's description so the client
+// can tell these apart from real meetings without guessing from the title.
+const TASK_DEADLINE_EVENT_MARKER = '[TaskApp:deadline-sync]';
+
 function upsertTaskDeadlineEvent(title, deadlineValue, existingEventId) {
   if (existingEventId) deleteTaskDeadlineEvent(existingEventId);
 
   const calendar = CalendarApp.getDefaultCalendar();
   const event = calendar.createAllDayEvent('📋 ' + title, new Date(deadlineValue), {
-    description: 'Дедлайн задачі TaskApp. Ця подія оновлюється автоматично разом із задачею.'
+    description: TASK_DEADLINE_EVENT_MARKER + ' Дедлайн задачі TaskApp. Ця подія оновлюється автоматично разом із задачею.'
   });
 
   invalidateCalendarCache();
@@ -252,4 +256,71 @@ function deleteTaskDeadlineEvent(eventId) {
     Logger.log('Не вдалося видалити подію дедлайну: ' + e.message);
   }
   invalidateCalendarCache();
+}
+
+/**
+ * Updates an existing calendar event's title/time/location/description.
+ * If the requested isAllDay differs from what the event currently is,
+ * CalendarApp has no in-place way to convert one into the other — so the
+ * event is deleted and recreated instead, and the (new) event's info is
+ * returned so the client can pick up its new ID.
+ * @param {string} eventId
+ * @param {Object} eventData - Same shape as createCalendarEvent() expects
+ * @returns {Object} {id, title, start, end}
+ */
+function updateCalendarEvent(eventId, eventData) {
+  const event = CalendarApp.getEventById(eventId);
+  if (!event) {
+    throw new Error('Подію не знайдено — можливо, її вже видалено.');
+  }
+
+  if (event.isAllDayEvent() !== !!eventData.isAllDay) {
+    event.deleteEvent();
+    invalidateCalendarCache();
+    return createCalendarEvent(eventData);
+  }
+
+  event.setTitle(eventData.title);
+  event.setLocation(eventData.location || '');
+  event.setDescription(eventData.description || '');
+
+  if (eventData.isAllDay) {
+    const startDate = new Date(eventData.startDate);
+    if (eventData.endDate && eventData.endDate !== eventData.startDate) {
+      const endDate = new Date(eventData.endDate);
+      endDate.setDate(endDate.getDate() + 1);
+      event.setAllDayDates(startDate, endDate);
+    } else {
+      event.setAllDayDate(startDate);
+    }
+  } else {
+    const startTime = new Date(eventData.startDate + 'T' + (eventData.startTime || '09:00'));
+    const endTime = new Date((eventData.endDate || eventData.startDate) + 'T' + (eventData.endTime || '10:00'));
+    event.setTime(startTime, endTime);
+  }
+
+  invalidateCalendarCache();
+  invalidateAiContextCache();
+
+  return {
+    id: event.getId(),
+    title: event.getTitle(),
+    start: event.getStartTime().toISOString(),
+    end: event.getEndTime().toISOString()
+  };
+}
+
+/**
+ * Deletes a calendar event by ID, as an explicit user action (unlike
+ * deleteTaskDeadlineEvent, failures here are not swallowed — the user
+ * clicked Delete and should see if it didn't work).
+ */
+function deleteCalendarEvent(eventId) {
+  const event = CalendarApp.getEventById(eventId);
+  if (event) {
+    event.deleteEvent();
+  }
+  invalidateCalendarCache();
+  invalidateAiContextCache();
+  return true;
 }

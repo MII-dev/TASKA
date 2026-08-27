@@ -662,6 +662,22 @@
                 }
 
                 group.events.forEach(function (ev) {
+                    // Our own auto-synced task-deadline markers, not real meetings —
+                    // rendered as a quiet badge, not editable/joinable/briefable here.
+                    const isDeadlineSync = !!(ev.description && ev.description.indexOf('[TaskApp:deadline-sync]') === 0);
+
+                    if (isDeadlineSync) {
+                        html += `
+                            <div class="calendar-event calendar-event-deadline" title="Синхронізовано з дедлайном задачі">
+                                <div class="event-time-block"><span class="event-time-allday">📋</span></div>
+                                <div class="event-info">
+                                    <div class="event-title">${ev.title.replace(/^📋\s*/, '')}</div>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
                     const isNow = !ev.isAllDay && new Date(ev.start) <= now && new Date(ev.end) > now;
                     const nowClass = isNow ? 'event-now' : '';
 
@@ -694,7 +710,9 @@
                     actionsHtml += '</div>';
 
                     html += `
-                        <div class="calendar-event ${nowClass}" style="border-left-color: ${ev.color}" title="${ev.calendarName}">
+                        <div class="calendar-event ${nowClass}" style="border-left-color: ${ev.color}; cursor: pointer;"
+                            title="${ev.calendarName} — клацни, щоб редагувати"
+                            onclick="openEventForEditById('${escapeHtml(ev.eventId)}')">
                             <div class="event-time-block">${timeBlock}</div>
                             <div class="event-info">
                                 <div class="event-title">${ev.title}</div>
@@ -755,19 +773,64 @@
             return null;
         }
 
-        // ===== Event Creation =====
-        function openEventModal() {
+        // ===== Event Creation / Editing =====
+        let editingEventId = null;
+
+        function openEventModal(existingEvent) {
             const modal = document.getElementById('eventModal');
             document.getElementById('eventForm').reset();
-            // Set default date to today
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('eventStartDate').value = today;
-            document.getElementById('eventEndDate').value = today;
-            document.getElementById('eventStartTime').value = '09:00';
-            document.getElementById('eventEndTime').value = '10:00';
             document.getElementById('eventStartTimeGroup').style.display = '';
             document.getElementById('eventEndTimeGroup').style.display = '';
+
+            const deleteBtn = document.getElementById('deleteEventBtn');
+
+            if (existingEvent) {
+                editingEventId = existingEvent.eventId;
+                document.getElementById('eventModalTitle').innerText = 'Редагувати подію';
+                document.getElementById('saveEventBtnText').innerText = 'Зберегти зміни';
+                deleteBtn.hidden = false;
+
+                document.getElementById('eventTitle').value = existingEvent.title;
+                document.getElementById('eventAllDay').checked = existingEvent.isAllDay;
+
+                const start = new Date(existingEvent.start);
+                const end = new Date(existingEvent.end);
+                document.getElementById('eventStartDate').value = toDateInputValue(start);
+
+                if (existingEvent.isAllDay) {
+                    // Calendar stores the all-day end date exclusive (start+1 for a
+                    // single day) — shift back so the form shows the real last day.
+                    const inclusiveEnd = new Date(end);
+                    inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
+                    document.getElementById('eventEndDate').value = toDateInputValue(inclusiveEnd);
+                } else {
+                    document.getElementById('eventEndDate').value = toDateInputValue(end);
+                    document.getElementById('eventStartTime').value = start.toTimeString().slice(0, 5);
+                    document.getElementById('eventEndTime').value = end.toTimeString().slice(0, 5);
+                }
+
+                document.getElementById('eventLocation').value = existingEvent.location || '';
+                document.getElementById('eventDescription').value = existingEvent.description || '';
+                toggleAllDay();
+            } else {
+                editingEventId = null;
+                document.getElementById('eventModalTitle').innerText = 'Нова подія в календарі';
+                document.getElementById('saveEventBtnText').innerText = 'Створити подію';
+                deleteBtn.hidden = true;
+
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('eventStartDate').value = today;
+                document.getElementById('eventEndDate').value = today;
+                document.getElementById('eventStartTime').value = '09:00';
+                document.getElementById('eventEndTime').value = '10:00';
+            }
+
             modal.classList.add('active');
+        }
+
+        function openEventForEditById(eventId) {
+            const ev = (calendarEvents || []).find(e => e.eventId === eventId);
+            if (ev) openEventModal(ev);
         }
 
         function closeEventModal() {
@@ -783,8 +846,10 @@
         function handleEventSubmit(e) {
             e.preventDefault();
             const btn = document.getElementById('saveEventBtn');
+            const btnText = document.getElementById('saveEventBtnText');
+            const originalLabel = btnText.innerText;
             btn.disabled = true;
-            btn.innerHTML = '<div class="loader" style="width: 16px; height: 16px; border-width: 2px;"></div> Створення...';
+            btnText.innerText = editingEventId ? 'Збереження...' : 'Створення...';
 
             const eventData = {
                 title: document.getElementById('eventTitle').value,
@@ -797,19 +862,44 @@
                 description: document.getElementById('eventDescription').value
             };
 
-            google.script.run
+            const call = google.script.run
                 .withSuccessHandler(function (result) {
                     closeEventModal();
                     loadCalendarEvents();
                     btn.disabled = false;
-                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Створити подію';
+                    btnText.innerText = originalLabel;
                 })
                 .withFailureHandler(function (err) {
-                    alert('Помилка створення події: ' + err);
+                    alert('Помилка збереження події: ' + (err.message || err));
                     btn.disabled = false;
-                    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Створити подію';
+                    btnText.innerText = originalLabel;
+                });
+
+            if (editingEventId) {
+                call.updateCalendarEvent(editingEventId, eventData);
+            } else {
+                call.createCalendarEvent(eventData);
+            }
+        }
+
+        function handleDeleteEvent() {
+            if (!editingEventId) return;
+            if (!confirm('Видалити цю подію з календаря?')) return;
+
+            const deleteBtn = document.getElementById('deleteEventBtn');
+            deleteBtn.disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function () {
+                    closeEventModal();
+                    loadCalendarEvents();
+                    deleteBtn.disabled = false;
                 })
-                .createCalendarEvent(eventData);
+                .withFailureHandler(function (err) {
+                    alert('Помилка видалення події: ' + (err.message || err));
+                    deleteBtn.disabled = false;
+                })
+                .deleteCalendarEvent(editingEventId);
         }
 
         // Initial load
