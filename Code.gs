@@ -2,6 +2,7 @@
 const SHEET_NAME = 'Tasks';
 const PROJECTS_SHEET_NAME = 'Projects';
 const CONTACTS_SHEET_NAME = 'Contacts';
+const SPECS_SHEET_NAME = 'Specs';
 
 /**
  * Serves the HTML file. Uses the templating engine (not createHtmlOutputFromFile)

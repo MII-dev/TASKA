@@ -361,6 +361,61 @@
         </div>
     </div>
 
+    <!-- Modal for Add/Edit Spec (ТВ/ТЗ) -->
+    <div id="specModal" class="modal-overlay" onclick="handleSpecOutsideClick(event)">
+        <div class="modal" style="max-width: 700px;">
+            <h2 id="specModalTitle" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span id="specModalTypeBadge" class="badge"></span>
+                <span id="specModalTitleText">Новий документ</span>
+            </h2>
+            <form id="specForm" onsubmit="handleSpecFormSubmit(event)">
+                <input type="hidden" id="specId">
+                <input type="hidden" id="specProjectId">
+                <input type="hidden" id="specType">
+                <input type="hidden" id="specDerivedFrom">
+
+                <div class="form-group">
+                    <label for="specTitle">Назва</label>
+                    <input type="text" id="specTitle" required placeholder="Напр. Онбординг нових користувачів">
+                </div>
+
+                <div class="form-group">
+                    <label for="specStatus">Статус</label>
+                    <select id="specStatus">
+                        <option value="Чернетка">Чернетка</option>
+                        <option value="Активне">Активне</option>
+                        <option value="Затверджено">Затверджено</option>
+                        <option value="Архів">Архів</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="specContent">Зміст (Markdown)</label>
+                    <textarea id="specContent" placeholder="Опишіть документ вручну, або скористайтесь ШІ нижче..."
+                        oninput="updateSpecContentCharCount()"
+                        style="min-height: 300px; font-family: 'Inter', monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
+                    <div id="specContentCharCount" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; text-align: right;"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline"
+                        style="margin-right: auto; color: var(--danger); border-color: rgba(242, 104, 92, 0.3);"
+                        id="specDeleteBtn" onclick="handleSpecDelete()" hidden>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6">
+                            </path>
+                        </svg>
+                        Видалити
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="closeSpecModal()">Скасувати</button>
+                    <button type="submit" class="btn btn-primary" id="specSaveBtn">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal for Add/Edit Contact -->
     <div id="contactModal" class="modal-overlay" onclick="handleContactOutsideClick(event)">
         <div class="modal">

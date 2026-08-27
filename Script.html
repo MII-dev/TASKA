@@ -906,6 +906,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             loadTasks();
             loadProjects();
+            loadSpecs();
             loadCalendarEvents();
             checkAiStatus();
             checkReminderStatus();
@@ -2114,7 +2115,189 @@
                     <h3>👤 Контакти / стейкхолдери</h3>
                     ${contactsHtml}
                 </div>
+
+                ${renderSpecsSection(project)}
             `;
+        }
+
+        // ---- ТВ/ТЗ (specs) ----
+
+        let specsData = [];
+
+        function loadSpecs() {
+            google.script.run
+                .withSuccessHandler(data => { specsData = data || []; })
+                .withFailureHandler(err => console.error('Failed to load specs:', err))
+                .getSpecs();
+        }
+
+        function getSpecBadgeClass(status) {
+            switch (status) {
+                case 'Чернетка': return 'badge-new';
+                case 'Активне': return 'badge-progress';
+                case 'Затверджено': return 'badge-done';
+                case 'Архів': return 'badge-archived';
+                default: return '';
+            }
+        }
+
+        function renderSpecsSection(project) {
+            const specs = specsData.filter(s => s['Проєкт'] === project.ID);
+            const tvList = specs.filter(s => s['Тип'] === 'ТВ');
+            const tzList = specs.filter(s => s['Тип'] === 'ТЗ');
+
+            function renderRow(spec) {
+                const originChip = spec['Тип'] === 'ТЗ' && spec['ПоходитьВід']
+                    ? (() => {
+                        const source = specsData.find(s => s.ID === spec['ПоходитьВід']);
+                        return source
+                            ? `<span class="tag-assignee" style="cursor: pointer;" onclick="event.stopPropagation(); openSpecModal('${source.ID}', '${project.ID}', 'ТВ')">сформовано з «${escapeHtml(source.Назва)}»</span>`
+                            : '';
+                    })()
+                    : '';
+                return `
+                    <div class="project-contact-row" style="cursor: pointer;" onclick="openSpecModal('${spec.ID}', '${project.ID}', '${spec['Тип']}')">
+                        <span style="font-weight: 600;">${escapeHtml(spec.Назва)}</span>
+                        <span class="badge ${getSpecBadgeClass(spec['Статус'])}">${spec['Статус'] || ''}</span>
+                        ${originChip}
+                        <span style="color: var(--text-muted); font-size: 0.78rem; margin-left: auto;">🕒 ${formatDate(spec['Дата оновлення'])}</span>
+                    </div>
+                `;
+            }
+
+            const tvHtml = tvList.length > 0
+                ? tvList.map(renderRow).join('')
+                : '<p style="color: var(--text-muted); font-size: 0.85rem;">Технічних вимог ще немає.</p>';
+            const tzHtml = tzList.length > 0
+                ? tzList.map(renderRow).join('')
+                : '<p style="color: var(--text-muted); font-size: 0.85rem;">Технічних завдань ще немає.</p>';
+
+            return `
+                <div class="project-detail-section">
+                    <h3 style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>📄 ТВ та ТЗ</span>
+                        <span style="display: flex; gap: 0.5rem;">
+                            <button type="button" class="ai-btn-sm" onclick="openSpecModal(null, '${project.ID}', 'ТВ')">➕ Нове ТВ</button>
+                            <button type="button" class="ai-btn-sm" onclick="openSpecModal(null, '${project.ID}', 'ТЗ')">➕ Нове ТЗ</button>
+                        </span>
+                    </h3>
+                    <label class="project-branch-subsection-label">Технічні вимоги (ТВ)</label>
+                    ${tvHtml}
+                    <label class="project-branch-subsection-label" style="margin-top: 1rem; display: block;">Технічні завдання (ТЗ)</label>
+                    ${tzHtml}
+                </div>
+            `;
+        }
+
+        function openSpecModal(id, projectId, type) {
+            const modal = document.getElementById('specModal');
+            const form = document.getElementById('specForm');
+            form.reset();
+            document.getElementById('specId').value = '';
+            document.getElementById('specProjectId').value = projectId;
+            document.getElementById('specDerivedFrom').value = '';
+            updateSpecContentCharCount();
+
+            if (id) {
+                const spec = specsData.find(s => s.ID === id);
+                if (!spec) return;
+                document.getElementById('specModalTitleText').innerText = 'Редагувати документ';
+                document.getElementById('specDeleteBtn').hidden = false;
+                document.getElementById('specId').value = spec.ID;
+                document.getElementById('specType').value = spec['Тип'];
+                document.getElementById('specDerivedFrom').value = spec['ПоходитьВід'] || '';
+                document.getElementById('specTitle').value = spec.Назва || '';
+                document.getElementById('specStatus').value = spec['Статус'] || 'Чернетка';
+                document.getElementById('specContent').value = spec['Зміст'] || '';
+                document.getElementById('specModalTypeBadge').innerText = spec['Тип'];
+            } else {
+                document.getElementById('specModalTitleText').innerText = type === 'ТВ' ? 'Нове ТВ' : 'Нове ТЗ';
+                document.getElementById('specDeleteBtn').hidden = true;
+                document.getElementById('specType').value = type;
+                document.getElementById('specStatus').value = 'Чернетка';
+                document.getElementById('specModalTypeBadge').innerText = type;
+            }
+
+            updateSpecContentCharCount();
+            modal.classList.add('active');
+        }
+
+        function closeSpecModal() {
+            document.getElementById('specModal').classList.remove('active');
+        }
+
+        function handleSpecOutsideClick(event) {
+            if (event.target === document.getElementById('specModal')) {
+                closeSpecModal();
+            }
+        }
+
+        function updateSpecContentCharCount() {
+            const len = document.getElementById('specContent').value.length;
+            const el = document.getElementById('specContentCharCount');
+            el.innerText = len > 35000 ? `${len.toLocaleString('uk-UA')} символів (наближаємось до ліміту)` : '';
+        }
+
+        function handleSpecFormSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('specSaveBtn');
+            const originalLabel = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Збереження...';
+
+            const spec = {
+                ID: document.getElementById('specId').value || undefined,
+                'Проєкт': document.getElementById('specProjectId').value,
+                'Тип': document.getElementById('specType').value,
+                'ПоходитьВід': document.getElementById('specDerivedFrom').value,
+                'Назва': document.getElementById('specTitle').value,
+                'Статус': document.getElementById('specStatus').value,
+                'Зміст': document.getElementById('specContent').value
+            };
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    btn.disabled = false;
+                    btn.innerText = originalLabel;
+                    closeSpecModal();
+                    const project = projectsData.find(p => p.ID === spec['Проєкт']);
+                    google.script.run
+                        .withSuccessHandler(data => {
+                            specsData = data || [];
+                            if (project) renderProjectDetail(project);
+                        })
+                        .withFailureHandler(err => console.error('Failed to reload specs:', err))
+                        .getSpecs();
+                })
+                .withFailureHandler(err => {
+                    alert('Помилка збереження документа: ' + (err.message || err));
+                    btn.disabled = false;
+                    btn.innerText = originalLabel;
+                })
+                .saveSpec(spec);
+        }
+
+        function handleSpecDelete() {
+            const id = document.getElementById('specId').value;
+            if (!id) return;
+            if (!confirm('Видалити цей документ?')) return;
+
+            const projectId = document.getElementById('specProjectId').value;
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    closeSpecModal();
+                    const project = projectsData.find(p => p.ID === projectId);
+                    google.script.run
+                        .withSuccessHandler(data => {
+                            specsData = data || [];
+                            if (project) renderProjectDetail(project);
+                        })
+                        .withFailureHandler(err => console.error('Failed to reload specs:', err))
+                        .getSpecs();
+                })
+                .withFailureHandler(err => alert('Помилка видалення: ' + (err.message || err)))
+                .deleteSpec(id);
         }
 
         /**
