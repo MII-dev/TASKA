@@ -2031,6 +2031,57 @@
             display: block;
         }
 
+        .spec-review-group-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--accent-purple-light);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .spec-review-row {
+            display: flex;
+            gap: 0.6rem;
+            align-items: flex-start;
+            padding: 0.65rem 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            transition: opacity 0.2s;
+        }
+
+        .spec-review-row.deselected {
+            opacity: 0.4;
+        }
+
+        .spec-review-row-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .spec-review-row-meta {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .spec-review-row-meta select,
+        .spec-review-row-meta input {
+            flex: 1;
+            min-width: 110px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.78rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-main);
+        }
+
         .branch-inline-notes {
             width: 100%;
             min-height: 4.5rem;

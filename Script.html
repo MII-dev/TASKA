@@ -2160,7 +2160,10 @@
                         <span style="font-weight: 600;">${escapeHtml(spec.Назва)}</span>
                         <span class="badge ${getSpecBadgeClass(spec['Статус'])}">${spec['Статус'] || ''}</span>
                         ${originChip}
-                        <span style="color: var(--text-muted); font-size: 0.78rem; margin-left: auto;">🕒 ${formatDate(spec['Дата оновлення'])}</span>
+                        <button type="button" class="ai-btn-sm" id="specGenBtn_${spec.ID}"
+                            onclick="event.stopPropagation(); generateTasksFromSpec('${spec.ID}')"
+                            style="margin-left: auto;" title="Згенерувати задачі з цього документа">🧩 Задачі</button>
+                        <span style="color: var(--text-muted); font-size: 0.78rem;">🕒 ${formatDate(spec['Дата оновлення'])}</span>
                     </div>
                 `;
             }
@@ -2485,6 +2488,194 @@
             };
 
             reader.readAsDataURL(selectedSpecFile);
+        }
+
+        // ---- Generate tasks from a spec + review/bulk-create ----
+
+        let specReviewItems = [];
+        let specReviewProjectId = null;
+
+        function generateTasksFromSpec(specId) {
+            const spec = specsData.find(s => s.ID === specId);
+            if (!spec) return;
+            if (!spec['Зміст'] || !spec['Зміст'].trim()) {
+                alert('Документ порожній — спершу додайте зміст.');
+                return;
+            }
+
+            const btn = document.getElementById('specGenBtn_' + specId);
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader" style="width: 12px; height: 12px; border-width: 2px;"></div> Аналіз...';
+
+            google.script.run
+                .withSuccessHandler(items => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    if (!items || items.length === 0) {
+                        alert('ШІ не запропонував жодної задачі з цього документа.');
+                        return;
+                    }
+                    openSpecTaskReviewModal(spec, items);
+                })
+                .withFailureHandler(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    alert('Помилка генерації задач: ' + (err.message || err));
+                })
+                .aiGenerateTasksFromSpec(spec['Зміст'], spec['Проєкт']);
+        }
+
+        function openSpecTaskReviewModal(spec, items) {
+            specReviewProjectId = spec['Проєкт'];
+            specReviewItems = items.map(item => ({
+                selected: true,
+                'Назва': item['Назва'],
+                'Опис': item['Опис'] || '',
+                'Тип': item['Тип'] || '',
+                'Пріоритет': item['Пріоритет'] || 'Середній',
+                'ГілкаНазва': item['ГілкаНазва'] || 'Без групи',
+                branchChoice: ''
+            }));
+
+            document.getElementById('specReviewSourceTitle').innerText = spec.Назва;
+            renderSpecTaskReviewRows();
+            document.getElementById('specTaskReviewModal').classList.add('active');
+        }
+
+        function closeSpecTaskReviewModal() {
+            document.getElementById('specTaskReviewModal').classList.remove('active');
+        }
+
+        function getProjectBranchOptionsHtml(selectedValue) {
+            const project = projectsData.find(p => p.ID === specReviewProjectId);
+            const branches = (project && project.Гілки) || [];
+            let html = `<option value="">— Без гілки —</option>`;
+            html += branches.map(b =>
+                `<option value="${b.id}" ${selectedValue === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`
+            ).join('');
+            return html;
+        }
+
+        function renderSpecTaskReviewRows() {
+            const container = document.getElementById('specReviewRows');
+
+            const groups = {};
+            specReviewItems.forEach((item, index) => {
+                const key = item['ГілкаНазва'] || 'Без групи';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(index);
+            });
+
+            let html = '';
+            Object.keys(groups).forEach(groupName => {
+                html += `<div class="spec-review-group-label">${escapeHtml(groupName)}</div>`;
+                groups[groupName].forEach(index => {
+                    const item = specReviewItems[index];
+                    html += `
+                        <div class="spec-review-row ${item.selected ? '' : 'deselected'}" id="specReviewRow_${index}">
+                            <input type="checkbox" ${item.selected ? 'checked' : ''} style="margin-top: 0.5rem;"
+                                onchange="toggleSpecReviewItem(${index}, this.checked)">
+                            <div class="spec-review-row-fields">
+                                <input type="text" value="${escapeHtml(item['Назва'])}"
+                                    onchange="editSpecReviewField(${index}, 'Назва', this.value)"
+                                    style="font-weight: 600; padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--text-main);">
+                                <textarea onchange="editSpecReviewField(${index}, 'Опис', this.value)"
+                                    style="min-height: 50px; font-size: 0.82rem; padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--text-main);">${escapeHtml(item['Опис'])}</textarea>
+                                <div class="spec-review-row-meta">
+                                    <input type="text" value="${escapeHtml(item['Тип'])}" placeholder="Тип"
+                                        onchange="editSpecReviewField(${index}, 'Тип', this.value)">
+                                    <select onchange="editSpecReviewField(${index}, 'Пріоритет', this.value)">
+                                        <option value="Високий" ${item['Пріоритет'] === 'Високий' ? 'selected' : ''}>Високий</option>
+                                        <option value="Середній" ${item['Пріоритет'] === 'Середній' ? 'selected' : ''}>Середній</option>
+                                        <option value="Низький" ${item['Пріоритет'] === 'Низький' ? 'selected' : ''}>Низький</option>
+                                    </select>
+                                    <select onchange="changeSpecReviewBranch(${index}, this.value)">
+                                        ${getProjectBranchOptionsHtml(item.branchChoice)}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+
+            container.innerHTML = html;
+            updateSpecReviewCount();
+        }
+
+        function updateSpecReviewCount() {
+            const total = specReviewItems.length;
+            const selected = specReviewItems.filter(i => i.selected).length;
+            document.getElementById('specReviewCount').innerText = `Обрано: ${selected} з ${total}`;
+            document.getElementById('specReviewSubmitBtn').innerText = `Створити ${selected} задач`;
+        }
+
+        function toggleSpecReviewItem(index, checked) {
+            specReviewItems[index].selected = checked;
+            document.getElementById('specReviewRow_' + index).classList.toggle('deselected', !checked);
+            updateSpecReviewCount();
+        }
+
+        function toggleSpecReviewAll(checked) {
+            specReviewItems.forEach(item => item.selected = checked);
+            renderSpecTaskReviewRows();
+        }
+
+        function editSpecReviewField(index, field, value) {
+            specReviewItems[index][field] = value;
+        }
+
+        function changeSpecReviewBranch(index, branchId) {
+            specReviewItems[index].branchChoice = branchId;
+        }
+
+        function submitSpecTaskReview() {
+            const selected = specReviewItems.filter(i => i.selected);
+            if (selected.length === 0) {
+                alert('Оберіть хоча б одну задачу.');
+                return;
+            }
+
+            const btn = document.getElementById('specReviewSubmitBtn');
+            btn.disabled = true;
+            let created = 0;
+            let failed = 0;
+
+            function next() {
+                if (created + failed >= selected.length) {
+                    btn.disabled = false;
+                    if (failed > 0) {
+                        alert(`Створено ${created} з ${selected.length} задач. ${failed} не вдалося створити — перевірте консоль.`);
+                    }
+                    closeSpecTaskReviewModal();
+                    loadTasks();
+                    const project = projectsData.find(p => p.ID === specReviewProjectId);
+                    if (project) renderProjectDetail(project);
+                    return;
+                }
+
+                const item = selected[created + failed];
+                btn.innerText = `Створення... (${created + failed + 1}/${selected.length})`;
+
+                google.script.run
+                    .withSuccessHandler(() => { created++; next(); })
+                    .withFailureHandler(err => {
+                        console.error('Не вдалося створити задачу "' + item['Назва'] + '": ', err);
+                        failed++;
+                        next();
+                    })
+                    .saveTask({
+                        'Назва': item['Назва'],
+                        'Опис': item['Опис'],
+                        'Тип': item['Тип'],
+                        'Пріоритет': item['Пріоритет'],
+                        'Статус': 'Нова',
+                        'Проєкт': specReviewProjectId,
+                        'Гілка': item.branchChoice || ''
+                    });
+            }
+            next();
         }
 
         function handleSpecFormSubmit(e) {

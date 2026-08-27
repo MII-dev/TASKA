@@ -531,6 +531,27 @@
         </div>
     </div>
 
+    <!-- Modal for reviewing/selecting AI-proposed tasks generated from a spec -->
+    <div id="specTaskReviewModal" class="modal-overlay" onclick="if(event.target===this)closeSpecTaskReviewModal()">
+        <div class="modal" style="max-width: 800px; display: flex; flex-direction: column; max-height: 88vh;">
+            <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; margin-bottom: 0.75rem; color: var(--text-main);">
+                Задачі з «<span id="specReviewSourceTitle"></span>»
+            </h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                <span id="specReviewCount" style="font-size: 0.85rem; color: var(--text-muted);">Обрано: 0 з 0</span>
+                <span style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="ai-btn-sm" onclick="toggleSpecReviewAll(true)">Обрати всі</button>
+                    <button type="button" class="ai-btn-sm" onclick="toggleSpecReviewAll(false)">Зняти всі</button>
+                </span>
+            </div>
+            <div id="specReviewRows" style="overflow-y: auto; flex: 1; padding-right: 6px;"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeSpecTaskReviewModal()">Скасувати</button>
+                <button type="button" class="btn btn-primary" id="specReviewSubmitBtn" onclick="submitSpecTaskReview()">Створити 0 задач</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal for Add/Edit Contact -->
     <div id="contactModal" class="modal-overlay" onclick="handleContactOutsideClick(event)">
         <div class="modal">

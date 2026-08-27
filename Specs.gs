@@ -246,6 +246,62 @@ function aiImportSpecFromDocument(base64Data, fileName, mimeType) {
   return text;
 }
 
+const SPEC_TASK_GEN_MAX_CHARS = 20000; // higher than the ~8000 used for ancillary letters — here the document IS the primary content
+const SPEC_TASK_GEN_MAX_ITEMS = 40;    // hard cap regardless of what the model returns, even if it ignores the "≤25" instruction
+const SPEC_TASK_VALID_PRIORITIES = ['Високий', 'Середній', 'Низький'];
+
+/**
+ * Analyzes a ТВ/ТЗ document and proposes a task breakdown for implementing
+ * it — a proposal only, nothing is written here. The caller (client) shows
+ * these for review/edit/selection before any saveTask() call.
+ * @param {string} specContent - The document's markdown content
+ * @param {string} projectId - Used only to pull light project context into the prompt
+ * @returns {Array} Array of {Назва, Опис, Тип, Пріоритет, ГілкаНазва}
+ */
+function aiGenerateTasksFromSpec(specContent, projectId) {
+  const projectContext = getProjectContextForSpec(projectId);
+
+  const truncated = specContent.length > SPEC_TASK_GEN_MAX_CHARS
+    ? specContent.substring(0, SPEC_TASK_GEN_MAX_CHARS) + '\n\n[...документ обрізано через великий розмір...]'
+    : specContent;
+
+  const prompt = `Документ (ТВ/ТЗ) для аналізу:\n\n${truncated}`;
+
+  const systemInstruction = `Ти — технічний керівник проєкту, що розбиває технічний документ (ТВ або ТЗ) на конкретні задачі для команди розробки.
+
+${projectContext ? 'Контекст проєкту:\n' + projectContext + '\n' : ''}
+Проаналізуй наданий документ і поверни ТІЛЬКИ JSON-масив, не більше 25 елементів — найважливіші, конкретні, самодостатні одиниці роботи (кожна повинна бути виконувана окремо, без обов'язкової залежності від порядку виконання інших).
+
+Кожен елемент масиву:
+{
+  "Назва": "Дієва, конкретна назва задачі (до 80 символів, починається з дієслова)",
+  "Опис": "Детальний опис того, що саме треба зробити, на основі документу",
+  "Тип": "Категорія задачі одним-двома словами (напр. Backend, Frontend, Дизайн, Тестування, Документація)",
+  "Пріоритет": "Високий" | "Середній" | "Низький",
+  "ГілкаНазва": "Назва функціональної області/фічі, до якої належить задача (для групування, напр. 'Авторизація', 'Календар')"
+}
+
+Не додавай жодного тексту поза JSON-масивом.`;
+
+  const responseText = callGeminiAI(prompt, systemInstruction, true);
+  const parsed = parseGeminiJson(responseText, 'генерація задач з ТЗ');
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('ШІ повернув неочікуваний формат відповіді. Спробуйте ще раз або скоротіть документ.');
+  }
+
+  return parsed
+    .filter(item => item && typeof item['Назва'] === 'string' && item['Назва'].trim() !== '')
+    .slice(0, SPEC_TASK_GEN_MAX_ITEMS)
+    .map(item => ({
+      'Назва': String(item['Назва']).trim(),
+      'Опис': item['Опис'] ? String(item['Опис']).trim() : '',
+      'Тип': item['Тип'] ? String(item['Тип']).trim() : '',
+      'Пріоритет': SPEC_TASK_VALID_PRIORITIES.indexOf(item['Пріоритет']) !== -1 ? item['Пріоритет'] : 'Середній',
+      'ГілкаНазва': item['ГілкаНазва'] ? String(item['ГілкаНазва']).trim() : 'Без групи'
+    }));
+}
+
 /**
  * Revises a spec's full content in response to a free-form instruction.
  * Works on either ТВ or ТЗ content — type-agnostic, operates on whatever
