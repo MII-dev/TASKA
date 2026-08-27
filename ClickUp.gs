@@ -68,10 +68,69 @@ function resolveClickUpToken(token) {
 
 function invalidateClickUpCache() {
   try {
-    CacheService.getUserCache().removeAll(['cu_tasks_open', 'cu_tasks_all', 'cu_awaiting_reply']);
+    CacheService.getUserCache().removeAll(['cu_tasks_open', 'cu_tasks_all', 'cu_awaiting_reply', 'cu_spaces_v3']);
   } catch (e) {
     Logger.log('Кеш: не вдалося скинути ClickUp: ' + e.message);
   }
+}
+
+const CLICKUP_SPACES_CACHE_SECONDS = 21600; // 6 h — spaces change about as rarely as list statuses
+
+/**
+ * Lists every Space the token has access to, across all workspaces, PLUS
+ * every folder individually shared with the user outside normal Space
+ * membership ("Shared with me" in the ClickUp sidebar). ClickUp treats
+ * these as two different mechanisms — being a Space member vs. having an
+ * item shared with you directly — so /team/{id}/space alone misses the
+ * latter; /team/{id}/shared (Get Shared Hierarchy) is what surfaces it.
+ * Cached for hours since this changes about as rarely as list statuses.
+ * @param {string} token - ClickUp Personal API Token (optional if stored)
+ * @returns {Array} [{id, name, teamId, teamName, type: 'space'|'folder'}]
+ */
+function getClickUpSpaces(token) {
+  const authToken = resolveClickUpToken(token);
+  // Only trust a non-empty cached array — `if (cached)` alone is truthy even for
+  // `[]`, so one transient empty fetch would otherwise wedge this empty for the
+  // full 6h TTL. A genuinely-empty result is cheap to just refetch next time.
+  const cached = cacheGetJson('cu_spaces_v3');
+  if (cached && cached.length > 0) return cached;
+
+  const teamsData = clickUpFetch('/team', authToken);
+  const teams = teamsData.teams || [];
+
+  var entries = [];
+  teams.forEach(function (team) {
+    try {
+      var spacesData = clickUpFetch('/team/' + team.id + '/space?archived=false', authToken);
+      (spacesData.spaces || []).forEach(function (s) {
+        entries.push({ id: s.id, name: s.name, teamId: team.id, teamName: team.name, type: 'space' });
+      });
+    } catch (e) {
+      Logger.log('Не вдалося завантажити spaces для workspace ' + team.name + ': ' + e.message);
+    }
+
+    try {
+      var sharedData = clickUpFetch('/team/' + team.id + '/shared', authToken);
+      var sharedFolders = (sharedData.shared && sharedData.shared.folders) || [];
+      sharedFolders.forEach(function (f) {
+        // The shared-hierarchy response already nests each folder's lists with
+        // task counts — free to include, and it's exactly what lets the client
+        // offer a specific list instead of eagerly pulling every task in the
+        // folder (some of these folders run into the hundreds of tasks per list).
+        var lists = (f.lists || []).map(function (l) {
+          return { id: l.id, name: l.name, taskCount: parseInt(l.task_count, 10) || 0 };
+        });
+        entries.push({ id: f.id, name: f.name, teamId: team.id, teamName: team.name, type: 'folder', lists: lists });
+      });
+    } catch (e) {
+      Logger.log('Не вдалося завантажити спільний доступ для workspace ' + team.name + ': ' + e.message);
+    }
+  });
+
+  if (entries.length > 0) {
+    cachePutJson('cu_spaces_v3', entries, CLICKUP_SPACES_CACHE_SECONDS);
+  }
+  return entries;
 }
 
 /**
@@ -189,6 +248,8 @@ function mapClickUpTask(task, teamName) {
     url: task.url || ('https://app.clickup.com/t/' + task.id),
     path: buildClickUpPath(task),
     workspace: teamName || '',
+    spaceId: (task.space || {}).id || null,
+    spaceName: (task.space || {}).name || '',
     tags: (task.tags || []).map(function (tag) { return tag.name; }),
     creator: mapClickUpUser(task.creator),
     assignees: (task.assignees || []).map(mapClickUpUser).filter(Boolean)
@@ -413,6 +474,260 @@ function getClickUpTasks(token, includeClosed) {
     statusesByList: statusesByList,
     truncated: raw.truncated,
     currentUser: raw.currentUser
+  };
+}
+
+/**
+ * Fetches every task in a Space regardless of assignee — the "browse the
+ * whole Space" counterpart to fetchClickUpTasksRaw's "my assigned tasks".
+ * Same pagination shape, just space_ids[] instead of assignees[].
+ * @param {string} token - ClickUp Personal API Token
+ * @param {string} spaceId
+ * @param {string} teamId - The workspace the space belongs to (space_ids[] is scoped per-team)
+ * @param {boolean} includeClosed
+ * @returns {Object} {tasks, truncated}
+ */
+function fetchClickUpTasksBySpace(token, spaceId, teamId, includeClosed) {
+  const cacheKey = 'cu_space_tasks_' + spaceId + '_' + (includeClosed ? '1' : '0');
+  const cached = cacheGetJson(cacheKey);
+  if (cached) return cached;
+
+  var teamName = '';
+  try {
+    var teamsData = clickUpFetch('/team', token);
+    var team = (teamsData.teams || []).find(function (t) { return t.id === teamId; });
+    teamName = team ? team.name : '';
+  } catch (e) {
+    Logger.log('Не вдалося визначити назву workspace: ' + e.message);
+  }
+
+  var allTasks = [];
+  var truncated = false;
+  var page = 0;
+  var lastPage = false;
+
+  while (!lastPage && page < CLICKUP_MAX_PAGES) {
+    var endpoint = '/team/' + teamId + '/task'
+      + '?space_ids[]=' + spaceId
+      + '&subtasks=true'
+      + '&include_closed=' + (includeClosed ? 'true' : 'false')
+      + '&order_by=due_date'
+      + '&reverse=false'
+      + '&page=' + page;
+
+    var tasksData = clickUpFetch(endpoint, token);
+    var tasks = tasksData.tasks || [];
+    tasks.forEach(function (task) {
+      allTasks.push(mapClickUpTask(task, teamName));
+    });
+
+    lastPage = (tasksData.last_page === true) || tasks.length === 0;
+    page++;
+  }
+
+  if (!lastPage) truncated = true;
+
+  allTasks.sort(function (a, b) {
+    if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
+    if (a.dueDate) return -1;
+    if (b.dueDate) return 1;
+    return 0;
+  });
+
+  const result = { tasks: allTasks, truncated: truncated };
+  cachePutJson(cacheKey, result, CACHE_TTL_CLICKUP_TASKS);
+  return result;
+}
+
+/**
+ * Fetches all tasks in a Space (any assignee) plus their list statuses —
+ * the Space-wide counterpart to getClickUpTasks().
+ * @returns {Object} {tasks, statusesByList, truncated}
+ */
+function getClickUpTasksForSpace(spaceId, teamId, token, includeClosed) {
+  const authToken = resolveClickUpToken(token);
+  const raw = fetchClickUpTasksBySpace(authToken, spaceId, teamId, includeClosed);
+
+  var listIdSet = {};
+  raw.tasks.forEach(function (t) {
+    if (t.listId) listIdSet[t.listId] = true;
+  });
+
+  var statusesByList = {};
+  try {
+    statusesByList = fetchClickUpStatusesForLists(Object.keys(listIdSet), authToken);
+  } catch (e) {
+    Logger.log('Не вдалося завантажити статуси списків: ' + e.message);
+  }
+
+  return {
+    tasks: raw.tasks,
+    statusesByList: statusesByList,
+    truncated: raw.truncated
+  };
+}
+
+/**
+ * Fetches every task in a folder that was shared directly with the user
+ * (not via Space membership — see getClickUpSpaces()'s doc comment).
+ * Shared folders aren't reachable through the space_ids[]-filtered team-task
+ * endpoint, so this walks the folder's lists individually instead — the
+ * standard, unambiguous "list tasks in a list" endpoint rather than betting
+ * on a filter-parameter name for a case the primary endpoint isn't meant for.
+ * @param {string} token - ClickUp Personal API Token
+ * @param {string} folderId
+ * @param {boolean} includeClosed
+ * @returns {Object} {tasks, truncated}
+ */
+function fetchClickUpTasksByFolder(token, folderId, includeClosed) {
+  const cacheKey = 'cu_folder_tasks_' + folderId + '_' + (includeClosed ? '1' : '0');
+  const cached = cacheGetJson(cacheKey);
+  if (cached) return cached;
+
+  const listsData = clickUpFetch('/folder/' + folderId + '/list?archived=false', token);
+  const lists = listsData.lists || [];
+
+  var allTasks = [];
+  var truncated = false;
+
+  lists.forEach(function (list) {
+    try {
+      var page = 0;
+      var lastPage = false;
+
+      while (!lastPage && page < CLICKUP_MAX_PAGES) {
+        var endpoint = '/list/' + list.id + '/task'
+          + '?subtasks=true'
+          + '&include_closed=' + (includeClosed ? 'true' : 'false')
+          + '&order_by=due_date'
+          + '&reverse=false'
+          + '&page=' + page;
+
+        var tasksData = clickUpFetch(endpoint, token);
+        var tasks = tasksData.tasks || [];
+        tasks.forEach(function (task) {
+          allTasks.push(mapClickUpTask(task, ''));
+        });
+
+        lastPage = (tasksData.last_page === true) || tasks.length === 0;
+        page++;
+      }
+
+      if (!lastPage) truncated = true;
+    } catch (e) {
+      Logger.log('Помилка завантаження задач списку ' + list.name + ': ' + e.message);
+    }
+  });
+
+  allTasks.sort(function (a, b) {
+    if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
+    if (a.dueDate) return -1;
+    if (b.dueDate) return 1;
+    return 0;
+  });
+
+  const result = { tasks: allTasks, truncated: truncated };
+  cachePutJson(cacheKey, result, CACHE_TTL_CLICKUP_TASKS);
+  return result;
+}
+
+/**
+ * Fetches all tasks in a shared folder plus their list statuses — the
+ * shared-folder counterpart to getClickUpTasksForSpace().
+ * @returns {Object} {tasks, statusesByList, truncated}
+ */
+function getClickUpTasksForFolder(folderId, token, includeClosed) {
+  const authToken = resolveClickUpToken(token);
+  const raw = fetchClickUpTasksByFolder(authToken, folderId, includeClosed);
+
+  var listIdSet = {};
+  raw.tasks.forEach(function (t) {
+    if (t.listId) listIdSet[t.listId] = true;
+  });
+
+  var statusesByList = {};
+  try {
+    statusesByList = fetchClickUpStatusesForLists(Object.keys(listIdSet), authToken);
+  } catch (e) {
+    Logger.log('Не вдалося завантажити статуси списків: ' + e.message);
+  }
+
+  return {
+    tasks: raw.tasks,
+    statusesByList: statusesByList,
+    truncated: raw.truncated
+  };
+}
+
+/**
+ * Fetches every task in a single list (any assignee) — the default, scoped
+ * way to browse a shared folder's contents: pick one list instead of
+ * eagerly pulling every list in the folder at once, some of which run into
+ * the hundreds of tasks.
+ * @returns {Object} {tasks, truncated}
+ */
+function fetchClickUpTasksByList(token, listId, includeClosed) {
+  const cacheKey = 'cu_list_tasks_' + listId + '_' + (includeClosed ? '1' : '0');
+  const cached = cacheGetJson(cacheKey);
+  if (cached) return cached;
+
+  var allTasks = [];
+  var truncated = false;
+  var page = 0;
+  var lastPage = false;
+
+  while (!lastPage && page < CLICKUP_MAX_PAGES) {
+    var endpoint = '/list/' + listId + '/task'
+      + '?subtasks=true'
+      + '&include_closed=' + (includeClosed ? 'true' : 'false')
+      + '&order_by=due_date'
+      + '&reverse=false'
+      + '&page=' + page;
+
+    var tasksData = clickUpFetch(endpoint, token);
+    var tasks = tasksData.tasks || [];
+    tasks.forEach(function (task) {
+      allTasks.push(mapClickUpTask(task, ''));
+    });
+
+    lastPage = (tasksData.last_page === true) || tasks.length === 0;
+    page++;
+  }
+
+  if (!lastPage) truncated = true;
+
+  allTasks.sort(function (a, b) {
+    if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
+    if (a.dueDate) return -1;
+    if (b.dueDate) return 1;
+    return 0;
+  });
+
+  const result = { tasks: allTasks, truncated: truncated };
+  cachePutJson(cacheKey, result, CACHE_TTL_CLICKUP_TASKS);
+  return result;
+}
+
+/**
+ * Fetches all tasks in a single list plus its status set — the scoped
+ * counterpart to getClickUpTasksForFolder()'s "load everything" mode.
+ * @returns {Object} {tasks, statusesByList, truncated}
+ */
+function getClickUpTasksForList(listId, token, includeClosed) {
+  const authToken = resolveClickUpToken(token);
+  const raw = fetchClickUpTasksByList(authToken, listId, includeClosed);
+
+  var statusesByList = {};
+  try {
+    statusesByList = fetchClickUpStatusesForLists([listId], authToken);
+  } catch (e) {
+    Logger.log('Не вдалося завантажити статуси списку: ' + e.message);
+  }
+
+  return {
+    tasks: raw.tasks,
+    statusesByList: statusesByList,
+    truncated: raw.truncated
   };
 }
 

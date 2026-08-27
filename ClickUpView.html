@@ -18,7 +18,7 @@
             <div class="clickup-header-bar" id="clickUpHeaderBar" style="display: none;">
                 <div class="clickup-stats" id="clickUpStats"></div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button class="btn btn-outline" onclick="loadClickUpTasks()"
+                    <button class="btn btn-outline" onclick="refreshClickUpView()"
                         style="padding: 0.5rem 0.75rem; border-color: rgba(124, 77, 255, 0.4); color: var(--accent-purple-light);"
                         title="Оновити задачі з ClickUp">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
@@ -56,6 +56,24 @@
                     <option value="priority">За пріоритетом</option>
                     <option value="name">За назвою</option>
                 </select>
+                <select class="search-input" style="flex: 0 1 auto; min-width: 160px;" id="clickUpSpaceFilter"
+                    onchange="onClickUpSpaceFilterChange()">
+                    <option value="">Усі Spaces</option>
+                </select>
+                <label class="clickup-toggle" id="clickUpSpaceWideToggleLabel" style="display: none;"
+                    title="Показати всі задачі цього Space, а не лише мої">
+                    <input type="checkbox" id="clickUpSpaceWideToggle" onchange="onClickUpSpaceWideToggle()">
+                    🌐 Усі задачі Space
+                </label>
+                <select class="search-input" style="flex: 0 1 auto; min-width: 200px; display: none;"
+                    id="clickUpListFilter" onchange="onClickUpListFilterChange()">
+                    <option value="">— Оберіть список —</option>
+                </select>
+                <label class="clickup-toggle" id="clickUpFolderWideToggleLabel" style="display: none;"
+                    title="Завантажити всі списки цієї папки одразу — може бути повільно для великих папок">
+                    <input type="checkbox" id="clickUpFolderWideToggle" onchange="onClickUpFolderWideToggle()">
+                    🌐 Усі списки папки
+                </label>
                 <label class="clickup-toggle" title="Групувати задачі за термінами (працює при сортуванні за дедлайном)">
                     <input type="checkbox" id="clickUpGroupToggle" checked onchange="toggleClickUpGrouping()">
                     🗓️ Групувати за датою

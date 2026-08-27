@@ -3317,6 +3317,8 @@
         let clickUpMigrationDone = false;
         let clickUpIncludeClosed = localStorage.getItem('clickup_include_closed') === '1';
         let clickUpGroupByDate = localStorage.getItem('clickup_group_by_date') !== '0';
+        let clickUpSpaces = [];
+        let clickUpMyTasksCache = null; // {tasks, statusesByList} — lets leaving Space-wide mode restore without a refetch
 
         const CLICKUP_DATE_GROUPS = [
             { key: 'overdue', label: '🔥 Прострочено', cls: 'group-overdue' },
@@ -3481,6 +3483,7 @@
                     clickUpStatusesByList = (result && result.statusesByList) || {};
                     clickUpCurrentUserId = (result && result.currentUser) ? result.currentUser.id : null;
                     clickUpLoaded = true;
+                    clickUpMyTasksCache = { tasks: clickUpTasks, statusesByList: clickUpStatusesByList };
 
                     if (result && result.truncated) {
                         const notice = document.getElementById('clickUpTruncatedNotice');
@@ -3488,6 +3491,7 @@
                         notice.style.display = 'block';
                     }
 
+                    if (clickUpSpaces.length === 0) loadClickUpSpaces();
                     populateClickUpStatuses(clickUpTasks);
                     filterClickUpTasks();
                 })
@@ -3511,6 +3515,245 @@
                 .getClickUpTasks(null, clickUpIncludeClosed);
 
             loadClickUpAwaitingReply();
+        }
+
+        // ---- Spaces: filter my tasks by Space, or browse a whole Space ----
+
+        function loadClickUpSpaces() {
+            google.script.run
+                .withSuccessHandler(entries => {
+                    clickUpSpaces = entries || [];
+                    const select = document.getElementById('clickUpSpaceFilter');
+                    const current = select.value;
+
+                    const spaces = clickUpSpaces.filter(s => s.type === 'space');
+                    const folders = clickUpSpaces.filter(s => s.type === 'folder');
+
+                    let html = '<option value="">Усі Spaces</option>';
+                    if (spaces.length > 0) {
+                        html += '<optgroup label="Spaces">' +
+                            spaces.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('') +
+                            '</optgroup>';
+                    }
+                    if (folders.length > 0) {
+                        html += '<optgroup label="🔗 Спільний доступ">' +
+                            folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('') +
+                            '</optgroup>';
+                    }
+
+                    select.innerHTML = html;
+                    select.value = current;
+                })
+                .withFailureHandler(err => console.error('Failed to load ClickUp spaces:', err))
+                .getClickUpSpaces(null);
+        }
+
+        function onClickUpSpaceFilterChange() {
+            const entryId = document.getElementById('clickUpSpaceFilter').value;
+            const entry = clickUpSpaces.find(s => s.id === entryId);
+            const wideLabel = document.getElementById('clickUpSpaceWideToggleLabel');
+            const listSelect = document.getElementById('clickUpListFilter');
+            const folderWideLabel = document.getElementById('clickUpFolderWideToggleLabel');
+
+            if (!entryId) {
+                wideLabel.style.display = 'none';
+                document.getElementById('clickUpSpaceWideToggle').checked = false;
+                listSelect.style.display = 'none';
+                folderWideLabel.style.display = 'none';
+                document.getElementById('clickUpFolderWideToggle').checked = false;
+                restoreClickUpMyTasks();
+                return;
+            }
+
+            if (entry && entry.type === 'folder') {
+                // Shared folders skip the "my tasks" concept entirely — you weren't
+                // necessarily assigned anything, you were just given access — and
+                // some run into the hundreds of tasks per list, so the default is
+                // to pick one specific list rather than eagerly loading everything.
+                wideLabel.style.display = 'none';
+                document.getElementById('clickUpSpaceWideToggle').checked = false;
+                document.getElementById('clickUpFolderWideToggle').checked = false;
+                folderWideLabel.style.display = 'inline-flex';
+
+                const lists = entry.lists || [];
+                listSelect.innerHTML = '<option value="">— Оберіть список —</option>' +
+                    lists.map(l => `<option value="${l.id}">${escapeHtml(l.name)} (${l.taskCount})</option>`).join('');
+                listSelect.style.display = '';
+
+                clickUpTasks = [];
+                clickUpStatusesByList = {};
+                populateClickUpStatuses(clickUpTasks);
+                filterClickUpTasks();
+                return;
+            }
+
+            listSelect.style.display = 'none';
+            folderWideLabel.style.display = 'none';
+            wideLabel.style.display = 'inline-flex';
+            if (document.getElementById('clickUpSpaceWideToggle').checked) {
+                loadClickUpSpaceWideTasks(entryId);
+            } else {
+                // Space-scoped view of my own tasks — already in memory, just re-filter
+                filterClickUpTasks();
+            }
+        }
+
+        function onClickUpSpaceWideToggle() {
+            const spaceId = document.getElementById('clickUpSpaceFilter').value;
+            if (!spaceId) return;
+
+            if (document.getElementById('clickUpSpaceWideToggle').checked) {
+                loadClickUpSpaceWideTasks(spaceId);
+            } else {
+                restoreClickUpMyTasks();
+            }
+        }
+
+        function onClickUpListFilterChange() {
+            const listId = document.getElementById('clickUpListFilter').value;
+            if (!listId) {
+                clickUpTasks = [];
+                clickUpStatusesByList = {};
+                populateClickUpStatuses(clickUpTasks);
+                filterClickUpTasks();
+                return;
+            }
+
+            const loader = document.getElementById('clickUpLoader');
+            const taskListEl = document.getElementById('clickUpTaskList');
+            loader.style.display = 'block';
+            taskListEl.innerHTML = '';
+            document.getElementById('clickUpTruncatedNotice').style.display = 'none';
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    loader.style.display = 'none';
+                    clickUpTasks = (result && result.tasks) || [];
+                    clickUpStatusesByList = (result && result.statusesByList) || {};
+
+                    if (result && result.truncated) {
+                        const notice = document.getElementById('clickUpTruncatedNotice');
+                        notice.innerText = '⚠️ Показано не всі задачі списку — досягнуто ліміт вивантаження.';
+                        notice.style.display = 'block';
+                    }
+
+                    populateClickUpStatuses(clickUpTasks);
+                    filterClickUpTasks();
+                })
+                .withFailureHandler(function (err) {
+                    loader.style.display = 'none';
+                    taskListEl.innerHTML = '<div class="empty-state" style="border: none; background: transparent;">' +
+                        '<h3 style="color: var(--danger);">Помилка завантаження списку</h3>' +
+                        '<p style="font-size: 0.85rem;">' + (err.message || err) + '</p>' +
+                        '</div>';
+                })
+                .getClickUpTasksForList(listId, null, clickUpIncludeClosed);
+        }
+
+        function onClickUpFolderWideToggle() {
+            const folderId = document.getElementById('clickUpSpaceFilter').value;
+            if (!folderId) return;
+
+            if (!document.getElementById('clickUpFolderWideToggle').checked) {
+                clickUpTasks = [];
+                clickUpStatusesByList = {};
+                populateClickUpStatuses(clickUpTasks);
+                filterClickUpTasks();
+                return;
+            }
+
+            const loader = document.getElementById('clickUpLoader');
+            const taskListEl = document.getElementById('clickUpTaskList');
+            loader.style.display = 'block';
+            taskListEl.innerHTML = '';
+            document.getElementById('clickUpTruncatedNotice').style.display = 'none';
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    loader.style.display = 'none';
+                    clickUpTasks = (result && result.tasks) || [];
+                    clickUpStatusesByList = (result && result.statusesByList) || {};
+
+                    if (result && result.truncated) {
+                        const notice = document.getElementById('clickUpTruncatedNotice');
+                        notice.innerText = '⚠️ Показано не всі задачі папки — досягнуто ліміт вивантаження.';
+                        notice.style.display = 'block';
+                    }
+
+                    populateClickUpStatuses(clickUpTasks);
+                    filterClickUpTasks();
+                })
+                .withFailureHandler(function (err) {
+                    loader.style.display = 'none';
+                    document.getElementById('clickUpFolderWideToggle').checked = false;
+                    taskListEl.innerHTML = '<div class="empty-state" style="border: none; background: transparent;">' +
+                        '<h3 style="color: var(--danger);">Помилка завантаження папки</h3>' +
+                        '<p style="font-size: 0.85rem;">' + (err.message || err) + '</p>' +
+                        '</div>';
+                })
+                .getClickUpTasksForFolder(folderId, null, clickUpIncludeClosed);
+        }
+
+        function restoreClickUpMyTasks() {
+            if (clickUpMyTasksCache) {
+                clickUpTasks = clickUpMyTasksCache.tasks;
+                clickUpStatusesByList = clickUpMyTasksCache.statusesByList;
+            }
+            populateClickUpStatuses(clickUpTasks);
+            filterClickUpTasks();
+        }
+
+        function loadClickUpSpaceWideTasks(spaceId) {
+            const space = clickUpSpaces.find(s => s.id === spaceId);
+            if (!space) return;
+
+            const loader = document.getElementById('clickUpLoader');
+            const taskListEl = document.getElementById('clickUpTaskList');
+            loader.style.display = 'block';
+            taskListEl.innerHTML = '';
+            document.getElementById('clickUpTruncatedNotice').style.display = 'none';
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    loader.style.display = 'none';
+                    clickUpTasks = (result && result.tasks) || [];
+                    clickUpStatusesByList = (result && result.statusesByList) || {};
+
+                    if (result && result.truncated) {
+                        const notice = document.getElementById('clickUpTruncatedNotice');
+                        notice.innerText = '⚠️ Показано не всі задачі Space — досягнуто ліміт вивантаження.';
+                        notice.style.display = 'block';
+                    }
+
+                    populateClickUpStatuses(clickUpTasks);
+                    filterClickUpTasks();
+                })
+                .withFailureHandler(function (err) {
+                    loader.style.display = 'none';
+                    taskListEl.innerHTML = '<div class="empty-state" style="border: none; background: transparent;">' +
+                        '<h3 style="color: var(--danger);">Помилка завантаження Space</h3>' +
+                        '<p style="font-size: 0.85rem;">' + (err.message || err) + '</p>' +
+                        '</div>';
+                })
+                .getClickUpTasksForSpace(space.id, space.teamId, null, clickUpIncludeClosed);
+        }
+
+        function refreshClickUpView() {
+            const entryId = document.getElementById('clickUpSpaceFilter').value;
+            const entry = clickUpSpaces.find(s => s.id === entryId);
+            const spaceWide = document.getElementById('clickUpSpaceWideToggle').checked;
+            const folderWide = document.getElementById('clickUpFolderWideToggle').checked;
+            const listId = document.getElementById('clickUpListFilter').value;
+
+            if (entry && entry.type === 'folder' && folderWide) {
+                onClickUpFolderWideToggle();
+            } else if (entry && entry.type === 'folder' && listId) {
+                onClickUpListFilterChange();
+            } else if (entryId && spaceWide) {
+                loadClickUpSpaceWideTasks(entryId);
+            } else {
+                loadClickUpTasks();
+            }
         }
 
         function loadClickUpAwaitingReply() {
@@ -3572,6 +3815,12 @@
             const query = document.getElementById('clickUpSearchInput').value.toLowerCase();
             const status = document.getElementById('clickUpStatusFilter').value;
             const sort = document.getElementById('clickUpSortFilter').value;
+            const spaceId = document.getElementById('clickUpSpaceFilter').value;
+            const spaceEntry = clickUpSpaces.find(s => s.id === spaceId);
+            // A selected shared folder already loaded exactly that folder's tasks —
+            // matching against t.spaceId here would wrongly filter everything out,
+            // since a folder's id isn't a task's spaceId.
+            const applySpaceFilter = spaceId && spaceEntry && spaceEntry.type === 'space';
 
             // Filter
             let filtered = clickUpTasks.filter(function (t) {
@@ -3588,7 +3837,12 @@
                     matchesStatus = (t.status && t.status.name === status);
                 }
 
-                return matchesSearch && matchesStatus;
+                let matchesSpace = true;
+                if (applySpaceFilter) {
+                    matchesSpace = t.spaceId === spaceId;
+                }
+
+                return matchesSearch && matchesStatus && matchesSpace;
             });
 
             // Sort
