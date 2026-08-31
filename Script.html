@@ -609,10 +609,19 @@
 
         function loadCalendarEvents() {
             const days = calendarMode === 'today' ? 1 : 7;
+            let googleEvents = null;
+            let teamsEvents = null;
+
+            function tryRender() {
+                if (googleEvents === null || teamsEvents === null) return;
+                calendarEvents = filterEventsByWindow(googleEvents.concat(teamsEvents), days);
+                renderCalendarEvents();
+            }
+
             google.script.run
                 .withSuccessHandler(function (events) {
-                    calendarEvents = events || [];
-                    renderCalendarEvents();
+                    googleEvents = events || [];
+                    tryRender();
                 })
                 .withFailureHandler(function (err) {
                     document.getElementById('calendarEventsList').innerHTML =
@@ -620,6 +629,37 @@
                     console.error('Calendar error:', err);
                 })
                 .getCalendarEvents(days);
+
+            // Teams events come from a separate, independently-failing source
+            // (Power Automate sync) — a hiccup there shouldn't block Google
+            // Calendar from rendering, so it fails soft to an empty array.
+            google.script.run
+                .withSuccessHandler(function (events) {
+                    teamsEvents = events || [];
+                    tryRender();
+                })
+                .withFailureHandler(function (err) {
+                    console.error('Teams calendar error:', err);
+                    teamsEvents = [];
+                    tryRender();
+                })
+                .getTeamsEvents();
+        }
+
+        /**
+         * Teams events are synced independently of the Сьогодні/Тиждень toggle
+         * (Power Automate just sends "everything upcoming"), so the window is
+         * enforced client-side after merging instead.
+         */
+        function filterEventsByWindow(events, days) {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const end = new Date(start);
+            end.setDate(end.getDate() + days);
+            return events.filter(function (ev) {
+                const evStart = new Date(ev.start);
+                return evStart >= start && evStart < end;
+            });
         }
 
         function switchCalendarTab(mode) {
@@ -835,6 +875,33 @@
 
         function closeEventModal() {
             document.getElementById('eventModal').classList.remove('active');
+        }
+
+        function openTeamsSetupModal() {
+            const modal = document.getElementById('teamsSetupModal');
+            const status = document.getElementById('teamsSyncStatus');
+            status.innerText = 'Завантаження статусу...';
+            modal.classList.add('active');
+
+            google.script.run
+                .withSuccessHandler(function (info) {
+                    document.getElementById('teamsWebhookUrl').value = info.url || '';
+                    document.getElementById('teamsWebhookSecret').value = info.secret || '';
+                    if (info.lastSyncedAt) {
+                        const when = new Date(info.lastSyncedAt).toLocaleString('uk-UA');
+                        status.innerText = `✅ Остання синхронізація: ${when} (${info.eventCount} подій)`;
+                    } else {
+                        status.innerText = '⏳ Синхронізації ще не було — налаштуй flow в Power Automate.';
+                    }
+                })
+                .withFailureHandler(function (err) {
+                    status.innerText = 'Помилка завантаження: ' + (err.message || err);
+                })
+                .getTeamsWebhookInfo();
+        }
+
+        function closeTeamsSetupModal() {
+            document.getElementById('teamsSetupModal').classList.remove('active');
         }
 
         function toggleAllDay() {

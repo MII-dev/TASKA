@@ -552,6 +552,54 @@
         </div>
     </div>
 
+    <!-- Modal for Teams (Power Automate) calendar sync setup -->
+    <div id="teamsSetupModal" class="modal-overlay" onclick="if(event.target===this)closeTeamsSetupModal()">
+        <div class="modal" style="max-width: 560px;">
+            <h2
+                style="font-family: 'Outfit', sans-serif; font-size: 1.4rem; margin-bottom: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                🟣 Синхронізація з Microsoft Teams
+            </h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
+                Пряме підключення до Teams вимагає реєстрації застосунку в Azure AD організації, що зараз
+                недоступно. Обхідний шлях — <strong>Power Automate</strong>: flow за розкладом читає твій
+                календар Outlook і надсилає події сюди. Створи новий Instant або Scheduled cloud flow в
+                <a href="https://make.powerautomate.com" target="_blank"
+                    style="color: var(--accent-purple-light);">make.powerautomate.com</a> за таким рецептом:
+            </p>
+            <ol style="font-size: 0.82rem; color: var(--text-main); line-height: 1.7; padding-left: 1.2rem; margin-bottom: 1.25rem;">
+                <li>Тригер: <strong>Recurrence</strong> — інтервал, напр. кожні 15-30 хв.</li>
+                <li>Дія: <strong>Office 365 Outlook → Get calendar view of events (V3)</strong> — Start time =
+                    зараз, End time = +7 днів.</li>
+                <li>Дія: <strong>Apply to each</strong> по результату → <strong>Compose</strong>, що збирає
+                    об'єкт <code>{id, title, start, end, isAllDay, location, organizer, joinUrl}</code> з полів
+                    події (Subject → title, Start/End Time → start/end, Is All Day → isAllDay, Location →
+                    location, Organizer → organizer, Online Meeting Url / Teams Meeting → joinUrl).</li>
+                <li>Після циклу: <strong>Compose</strong>, що збирає всі результати кроку 3 в масив
+                    <code>events</code>, і фінальний <strong>Compose</strong> з об'єктом
+                    <code>{"secret": "...", "events": [...]}</code> (значення secret — знизу).</li>
+                <li>Дія: <strong>HTTP</strong> — Method: POST, URI: посилання знизу, Headers:
+                    <code>Content-Type: application/json</code>, Body: результат попереднього Compose.</li>
+            </ol>
+
+            <div class="form-group">
+                <label>Посилання (URI для кроку HTTP)</label>
+                <input type="text" id="teamsWebhookUrl" class="search-input" readonly
+                    onclick="this.select()" style="font-family: monospace; font-size: 0.78rem;">
+            </div>
+            <div class="form-group">
+                <label>Секрет (значення поля "secret" у тілі запиту)</label>
+                <input type="text" id="teamsWebhookSecret" class="search-input" readonly
+                    onclick="this.select()" style="font-family: monospace; font-size: 0.78rem;">
+            </div>
+
+            <p id="teamsSyncStatus" style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeTeamsSetupModal()">Закрити</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal for Add/Edit Contact -->
     <div id="contactModal" class="modal-overlay" onclick="handleContactOutsideClick(event)">
         <div class="modal">
