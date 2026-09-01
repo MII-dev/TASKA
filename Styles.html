@@ -1635,6 +1635,20 @@
         }
 
         @media (max-width: 768px) {
+            /* Blanket safety net: this app has dozens of one-off flex rows
+               written as inline style="display:flex" directly in the HTML
+               (header action buttons, event action rows, list-editor rows,
+               etc.) that were never individually given flex-wrap — rather
+               than hunt down and patch each one file by file, force every
+               flex container to be wrap-capable by default on narrow
+               screens. flex-wrap is a no-op on anything that isn't a flex
+               container, so this is safe to apply globally; specific rules
+               below/elsewhere can still override it where a different
+               layout (e.g. column-reverse) is wanted. */
+            * {
+                flex-wrap: wrap;
+            }
+
             .quick-create-bar {
                 max-width: 100%;
                 margin: 1rem 0;
@@ -1667,6 +1681,87 @@
                 width: auto;
                 bottom: 88px;
                 height: min(600px, calc(100vh - 110px));
+            }
+
+            /* Filter bars (Tasks/Projects/ClickUp controls) — the ClickUp bar
+               alone can carry 8+ inputs now (search, status, sort, Space, list,
+               3 toggles); stacking each input/select full-width beats a row of
+               half-visible columns. Buttons and toggle labels stay compact and
+               just wrap via .controls' existing flex-wrap. */
+            .controls input,
+            .controls select {
+                flex: 1 1 100%;
+            }
+
+            .clickup-header-bar {
+                flex-wrap: wrap;
+            }
+
+            .modal-footer {
+                flex-wrap: wrap;
+            }
+
+            .modal-footer > * {
+                flex: 1 1 auto;
+            }
+
+            .project-detail-header {
+                flex-wrap: wrap;
+            }
+
+            .calendar-widget-header {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .ai-setup-input-group {
+                flex-wrap: wrap;
+            }
+
+            .ai-setup-input-group input {
+                flex: 1 1 100%;
+            }
+
+            /* Spec (ТВ/ТЗ) list rows and project contact rows carry a name,
+               badge, chip and action button in one line — too much for a
+               narrow screen to keep on one row. */
+            .project-contact-row {
+                flex-wrap: wrap;
+            }
+
+            .project-contact-row > span:last-child {
+                margin-left: 0 !important;
+            }
+
+            .spec-review-row {
+                flex-wrap: wrap;
+            }
+
+            .event-actions {
+                flex-wrap: wrap;
+            }
+
+            .list-editor-row {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* On the narrowest phones, footer buttons (Save/Cancel/Delete)
+               read better stacked full-width than squeezed onto one line. */
+            .modal-footer {
+                flex-direction: column-reverse;
+                flex-wrap: nowrap;
+            }
+
+            .modal-footer > * {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .spec-review-row-meta select,
+            .spec-review-row-meta input {
+                flex: 1 1 100%;
             }
         }
 
