@@ -757,21 +757,59 @@ function aiChat(message, chatHistory) {
  * Parses natural text query into task properties.
  */
 function aiCreateTask(naturalText) {
-  const prompt = `Проаналізуй наступний опис задачі та розбий його на структуровані поля: "${naturalText}"`;
-  
-  const systemInstruction = `Ти — асистент TaskApp. Твоє завдання — перетворити текст у структуровані поля для створення задачі.
+  const prompt = `Проаналізуй наступний текст: "${naturalText}"`;
+
+  const systemInstruction = `Ти — асистент TaskApp. Твоє завдання — перетворити текст у структуровані задачі.
 Поточна дата: ${new Date().toISOString().split('T')[0]}.
-Поверни ТІЛЬКИ JSON об'єкт з наступними полями:
-- "Назва" (обов'язково): заголовок задачі.
-- "Опис" (опціонально): детальний опис.
-- "Дедлайн" (опціонально): дата у форматі YYYY-MM-DD. Якщо в тексті є відносні дати (наприклад, "завтра", "до п'ятниці"), вирахуй їх на основі поточної дати.
+
+Спочатку визнач: цей текст описує ОДНУ дію/задачу, чи КІЛЬКА окремих справ (наприклад, це нотатки із зустрічі з різними темами)?
+
+- Якщо це ОДНА задача — поверни ТІЛЬКИ ОДИН JSON-об'єкт (не масив) з полями нижче.
+- Якщо це КІЛЬКА окремих справ — поверни JSON-МАСИВ, по одному об'єкту з тими самими полями на кожну окрему дію чи домовленість. Не об'єднуй різні справи в одну.
+
+Поля кожної задачі:
+- "Назва" (обов'язково): коротка дієва назва.
+- "Опис" (опціонально): деталі, контекст.
+- "Дедлайн" (опціонально): дата у форматі YYYY-MM-DD. Відносні дати (наприклад, "завтра", "наступного четверга") вирахуй на основі поточної дати.
 - "Пріоритет" (опціонально): "Низький", "Середній" або "Високий".
 - "Тип" (опціонально): категорія задачі (напр. Розробка, Дизайн, Особисте, Зустріч).
 - "Виконавець" (опціонально): ім'я виконавця (якщо не вказано, залиш порожнім).
 Не додавай ніякого іншого тексту, окрім валідного JSON.`;
 
   const responseText = callGeminiAI(prompt, systemInstruction, true);
-  return parseGeminiJson(responseText, 'створення задачі з тексту');
+  const result = parseGeminiJson(responseText, 'створення задачі з тексту');
+
+  if (Array.isArray(result)) {
+    // Multiple tasks — the client routes this to the review-and-bulk-create
+    // modal (same one aiGenerateTasksFromSpec's output goes through), so this
+    // only needs the same field shape, filtered to genuinely usable items.
+    const cleaned = result
+      .filter(function (item) { return item && item['Назва'] && String(item['Назва']).trim() !== ''; })
+      .map(function (item) {
+        return {
+          'Назва': String(item['Назва']).trim(),
+          'Опис': item['Опис'] ? String(item['Опис']).trim() : '',
+          'Дедлайн': item['Дедлайн'] || '',
+          'Пріоритет': item['Пріоритет'] || '',
+          'Тип': item['Тип'] || '',
+          'Виконавець': item['Виконавець'] || ''
+        };
+      });
+
+    if (cleaned.length === 0) {
+      throw new Error('ШІ не зміг визначити жодної задачі з цього тексту. Спробуй сформулювати конкретніше.');
+    }
+    return cleaned;
+  }
+
+  // Defends against a malformed single response — without this, the client
+  // would silently open a blank task modal (no Назва to fill in) instead of
+  // telling the user anything went wrong.
+  if (typeof result !== 'object' || result === null || !result['Назва'] || !String(result['Назва']).trim()) {
+    throw new Error('ШІ не зміг визначити чітку назву задачі з цього тексту. Спробуй сформулювати конкретніше.');
+  }
+
+  return result;
 }
 
 /**

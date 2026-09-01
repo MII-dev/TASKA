@@ -1260,14 +1260,33 @@
             submitBtn.innerHTML = '<div class="loader" style="width: 16px; height: 16px; border-width: 2px; margin: 0;"></div> Аналізую...';
 
             google.script.run
-                .withSuccessHandler(taskData => {
+                .withSuccessHandler(result => {
                     input.disabled = false;
                     submitBtn.disabled = false;
                     cancelBtn.disabled = false;
                     submitBtn.innerHTML = originalBtnHtml;
                     input.value = "";
-                    closeQuickCreateModal();
 
+                    // The AI decided this text describes several distinct
+                    // tasks (e.g. meeting notes) rather than one — reuse the
+                    // same review-and-bulk-create modal aiGenerateTasksFromSpec
+                    // feeds, just without a project/branch context.
+                    if (Array.isArray(result)) {
+                        closeQuickCreateModal();
+                        openTaskReviewModal('твого запису', '', result);
+                        return;
+                    }
+
+                    const taskData = result;
+                    if (!taskData || !taskData.Назва) {
+                        // Shouldn't happen — the server validates this — but
+                        // opening a blank task modal with no explanation is
+                        // worse than a slightly redundant warning here.
+                        alert('ШІ не зміг сформувати задачу з цього тексту. Спробуй ще раз.');
+                        return;
+                    }
+
+                    closeQuickCreateModal();
                     openModal();
 
                     if (taskData.Назва) document.getElementById('title').value = taskData.Назва;
@@ -2516,7 +2535,7 @@
                         alert('ШІ не запропонував жодної задачі з цього документа.');
                         return;
                     }
-                    openSpecTaskReviewModal(spec, items);
+                    openTaskReviewModal(spec.Назва, spec['Проєкт'], items);
                 })
                 .withFailureHandler(err => {
                     btn.disabled = false;
@@ -2526,19 +2545,24 @@
                 .aiGenerateTasksFromSpec(spec['Зміст'], spec['Проєкт']);
         }
 
-        function openSpecTaskReviewModal(spec, items) {
-            specReviewProjectId = spec['Проєкт'];
+        // Shared by "generate tasks from a ТВ/ТЗ" (project context, branch
+        // grouping) and "quick-create decided this text is several tasks"
+        // (no project — projectId is ''); the branch column and "create new
+        // branch" logic below all no-op cleanly when there's no project.
+        function openTaskReviewModal(sourceTitle, projectId, items) {
+            specReviewProjectId = projectId || '';
             specReviewItems = items.map(item => ({
                 selected: true,
                 'Назва': item['Назва'],
                 'Опис': item['Опис'] || '',
                 'Тип': item['Тип'] || '',
                 'Пріоритет': item['Пріоритет'] || 'Середній',
+                'Дедлайн': item['Дедлайн'] || '',
                 'ГілкаНазва': item['ГілкаНазва'] || 'Без групи',
                 branchChoice: ''
             }));
 
-            document.getElementById('specReviewSourceTitle').innerText = spec.Назва;
+            document.getElementById('specReviewSourceTitle').innerText = sourceTitle;
             renderSpecTaskReviewRows();
             document.getElementById('specTaskReviewModal').classList.add('active');
         }
@@ -2558,6 +2582,18 @@
                 html += `<option value="__new__" ${selectedValue === '__new__' ? 'selected' : ''}>+ Нова гілка: "${escapeHtml(groupName)}"</option>`;
             }
             return html;
+        }
+
+        /**
+         * Branch assignment only means something inside a project — when
+         * these tasks have no project (quick-create's multi-task path), the
+         * dropdown is skipped entirely rather than shown disabled/empty.
+         */
+        function getBranchSelectHtml(index, item) {
+            if (!specReviewProjectId) return '';
+            return `<select onchange="changeSpecReviewBranch(${index}, this.value)">
+                ${getProjectBranchOptionsHtml(item.branchChoice, item['ГілкаНазва'])}
+            </select>`;
         }
 
         function renderSpecTaskReviewRows() {
@@ -2593,9 +2629,9 @@
                                         <option value="Середній" ${item['Пріоритет'] === 'Середній' ? 'selected' : ''}>Середній</option>
                                         <option value="Низький" ${item['Пріоритет'] === 'Низький' ? 'selected' : ''}>Низький</option>
                                     </select>
-                                    <select onchange="changeSpecReviewBranch(${index}, this.value)">
-                                        ${getProjectBranchOptionsHtml(item.branchChoice, item['ГілкаНазва'])}
-                                    </select>
+                                    <input type="date" value="${escapeHtml(item['Дедлайн'] || '')}"
+                                        onchange="editSpecReviewField(${index}, 'Дедлайн', this.value)">
+                                    ${getBranchSelectHtml(index, item)}
                                 </div>
                             </div>
                         </div>
@@ -2718,6 +2754,7 @@
                         'Опис': item['Опис'],
                         'Тип': item['Тип'],
                         'Пріоритет': item['Пріоритет'],
+                        'Дедлайн': item['Дедлайн'] || '',
                         'Статус': 'Нова',
                         'Проєкт': specReviewProjectId,
                         'Гілка': item.branchChoice || ''
