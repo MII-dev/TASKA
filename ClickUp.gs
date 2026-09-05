@@ -746,18 +746,19 @@ function getClickUpContext() {
     }
 
     const shown = raw.tasks.slice(0, AI_CTX_MAX_CLICKUP_TASKS);
-    let context = `ЗАДАЧІ З CLICKUP (${shown.length} з ${raw.tasks.length}, від найближчого дедлайну):\n`;
+    let context = `<<<CLICKUP_DANI>>>\n`;
+    context += `ЗАДАЧІ З CLICKUP (${shown.length} з ${raw.tasks.length}, від найближчого дедлайну):\n`;
 
     const priorityNames = { 1: 'Urgent', 2: 'High', 3: 'Normal', 4: 'Low' };
 
     shown.forEach(function (t, index) {
-      context += `${index + 1}. [${t.status.name}] "${t.name}" | ClickUp ID: ${t.id}\n`;
+      context += `${index + 1}. [${untrustedText(t.status.name)}] "${untrustedText(t.name)}" | ClickUp ID: ${t.id}\n`;
 
       const attrs = [];
       if (t.dueDate) attrs.push('дедлайн: ' + formatDateShort(new Date(t.dueDate).toISOString()));
       if (t.priority && priorityNames[t.priority]) attrs.push('пріоритет: ' + priorityNames[t.priority]);
-      if (t.path) attrs.push('список: ' + t.path);
-      if (t.creator && t.creator.name) attrs.push('створив: ' + t.creator.name);
+      if (t.path) attrs.push('список: ' + untrustedText(t.path));
+      if (t.creator && t.creator.name) attrs.push('створив: ' + untrustedText(t.creator.name));
       if (attrs.length > 0) context += '   ' + attrs.join(' | ') + '\n';
     });
 
@@ -765,6 +766,7 @@ function getClickUpContext() {
       context += `…та ще ${raw.tasks.length - shown.length} задач у ClickUp.\n`;
     }
 
+    context += '<<<KINEC_CLICKUP_DANI>>>\n';
     return context;
   } catch (e) {
     Logger.log('Не вдалося отримати контекст ClickUp: ' + e.message);

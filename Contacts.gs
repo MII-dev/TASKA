@@ -146,15 +146,17 @@ function saveContact(contact) {
  * Deletes a contact by ID.
  */
 function deleteContact(id) {
-  const sheet = initContactsSheet();
-  const data = sheet.getDataRange().getValues();
+  return withSheetLock(function () {
+    const sheet = initContactsSheet();
+    const data = sheet.getDataRange().getValues();
 
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] == id) {
-      sheet.deleteRow(i + 1);
-      invalidateAiContextCache();
-      return true;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == id) {
+        sheet.deleteRow(i + 1);
+        invalidateAiContextCache();
+        return true;
+      }
     }
-  }
-  return false;
+    return false;
+  });
 }

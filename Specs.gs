@@ -89,7 +89,7 @@ function saveSpec(spec) {
 
   specToSave['Дата оновлення'] = new Date();
 
-  const rowValues = headers.map(header => specToSave[header] !== undefined ? specToSave[header] : '');
+  const rowValues = buildSheetRow(headers, specToSave);
 
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
@@ -104,16 +104,18 @@ function saveSpec(spec) {
  * Deletes a spec by ID.
  */
 function deleteSpec(id) {
-  const sheet = initSpecsSheet();
-  const data = sheet.getDataRange().getValues();
+  return withSheetLock(function () {
+    const sheet = initSpecsSheet();
+    const data = sheet.getDataRange().getValues();
 
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] == id) {
-      sheet.deleteRow(i + 1);
-      return true;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == id) {
+        sheet.deleteRow(i + 1);
+        return true;
+      }
     }
-  }
-  return false;
+    return false;
+  });
 }
 
 // ==========================================

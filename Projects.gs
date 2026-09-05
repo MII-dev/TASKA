@@ -101,7 +101,7 @@ function saveProject(project) {
   // always reflects when the project's info was last actually looked at.
   projectToSave['Дата оновлення'] = new Date();
 
-  const rowValues = headers.map(header => projectToSave[header] || '');
+  const rowValues = buildSheetRow(headers, projectToSave);
 
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
@@ -118,15 +118,17 @@ function saveProject(project) {
  * dangling Проєкт/Гілка ID — the UI simply shows no badge for them.
  */
 function deleteProject(id) {
-  const sheet = initProjectsSheet();
-  const data = sheet.getDataRange().getValues();
+  return withSheetLock(function () {
+    const sheet = initProjectsSheet();
+    const data = sheet.getDataRange().getValues();
 
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] == id) {
-      sheet.deleteRow(i + 1);
-      invalidateAiContextCache();
-      return true;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == id) {
+        sheet.deleteRow(i + 1);
+        invalidateAiContextCache();
+        return true;
+      }
     }
-  }
-  return false;
+    return false;
+  });
 }

@@ -77,8 +77,13 @@ function fetchCalendarEvents(daysAhead) {
             name = 'Google Meet';
           }
           
-          if (link && item.iCalUID) {
-            conferenceMap[item.iCalUID] = { link: link, name: name };
+          // Індексуємо за обома формами ID. Для одноразових подій iCalUID
+          // збігається з CalendarApp.getId(), а для примірників повторюваної
+          // події — ні, і кнопка Join зникала саме на регулярних зустрічах.
+          if (link) {
+            var conference = { link: link, name: name };
+            if (item.iCalUID) conferenceMap[item.iCalUID] = conference;
+            if (item.id) conferenceMap[item.id + '@google.com'] = conference;
           }
         });
       } catch(e) {
@@ -132,6 +137,54 @@ function fetchCalendarEvents(daysAhead) {
 }
 
 /**
+ * Turns a form or assistant payload into real start/end Date objects.
+ *
+ * An absent end time means one hour after the start. The prompt promises the
+ * assistant exactly that, but the code used to substitute a fixed 10:00 — so
+ * "зустріч завтра о 15:00" produced an event ending before it began. Since
+ * createEvent applies without a confirmation card, nobody saw it happen.
+ * @param {Object} eventData - Needs startDate; startTime/endDate/endTime optional
+ * @returns {Object} {start, end}
+ */
+function resolveEventTimes(eventData) {
+  const startDate = String(eventData.startDate || '');
+  const startTime = String(eventData.startTime || '09:00');
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    throw new Error('Некоректна дата початку події: "' + startDate + '".');
+  }
+  if (!/^\d{2}:\d{2}$/.test(startTime)) {
+    throw new Error('Некоректний час початку події: "' + startTime + '".');
+  }
+
+  const start = new Date(startDate + 'T' + startTime);
+  if (isNaN(start.getTime())) {
+    throw new Error('Не вдалося розібрати початок події.');
+  }
+
+  const endDate = eventData.endDate ? String(eventData.endDate) : startDate;
+  let end;
+
+  if (eventData.endTime) {
+    const endTime = String(eventData.endTime);
+    if (!/^\d{2}:\d{2}$/.test(endTime)) {
+      throw new Error('Некоректний час завершення події: "' + endTime + '".');
+    }
+    end = new Date(endDate + 'T' + endTime);
+  } else {
+    end = new Date(start.getTime() + 60 * 60 * 1000);
+  }
+
+  // Кінець не пізніше початку — це завжди помилка вводу, а не намір. Година від
+  // початку корисніша за виняток, бо подія вже створюється без підтвердження.
+  if (isNaN(end.getTime()) || end.getTime() <= start.getTime()) {
+    end = new Date(start.getTime() + 60 * 60 * 1000);
+  }
+
+  return { start: start, end: end };
+}
+
+/**
  * Creates a new event on the user's default calendar.
  * @param {Object} eventData - Event data object
  * @returns {Object} Created event info
@@ -166,13 +219,12 @@ function createCalendarEvent(eventData) {
       );
     }
   } else {
-    const startTime = new Date(eventData.startDate + 'T' + (eventData.startTime || '09:00'));
-    const endTime = new Date((eventData.endDate || eventData.startDate) + 'T' + (eventData.endTime || '10:00'));
-    
+    const times = resolveEventTimes(eventData);
+
     event = calendar.createEvent(
       eventData.title,
-      startTime,
-      endTime,
+      times.start,
+      times.end,
       {
         description: eventData.description || '',
         location: eventData.location || ''
@@ -190,6 +242,31 @@ function createCalendarEvent(eventData) {
     start: event.getStartTime().toISOString(),
     end: event.getEndTime().toISOString()
   };
+}
+
+/**
+ * Reduces a deadline to a plain yyyy-MM-dd key that two different
+ * representations of the same day agree on.
+ *
+ * The sheet hands back a Date at local midnight, while the client sends
+ * "2026-09-10". Running both through toISOString() shifts the Date a day back
+ * east of UTC, so the two never matched and every comparison looked like a
+ * change. A bare date string is already timezone-free and is taken as written;
+ * anything with a time is read in the script's own timezone.
+ * @param {Date|string} value
+ * @returns {string} yyyy-MM-dd, or '' when there is nothing to compare
+ */
+function toCalendarDateKey(value) {
+  if (!value) return '';
+
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+    return value.trim();
+  }
+
+  const date = (value instanceof Date) ? value : new Date(value);
+  if (isNaN(date.getTime())) return '';
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
 /**
@@ -211,8 +288,8 @@ function syncTaskDeadlineEvent(task, oldDeadlineRaw, oldEventId) {
     return '';
   }
 
-  const oldKey = oldDeadlineRaw ? formatDateShort(oldDeadlineRaw) : '';
-  const newKey = formatDateShort(newDeadline);
+  const oldKey = toCalendarDateKey(oldDeadlineRaw);
+  const newKey = toCalendarDateKey(newDeadline);
 
   // Same deadline, event already exists — nothing to do
   if (oldEventId && oldKey === newKey) {
@@ -294,9 +371,8 @@ function updateCalendarEvent(eventId, eventData) {
       event.setAllDayDate(startDate);
     }
   } else {
-    const startTime = new Date(eventData.startDate + 'T' + (eventData.startTime || '09:00'));
-    const endTime = new Date((eventData.endDate || eventData.startDate) + 'T' + (eventData.endTime || '10:00'));
-    event.setTime(startTime, endTime);
+    const times = resolveEventTimes(eventData);
+    event.setTime(times.start, times.end);
   }
 
   invalidateCalendarCache();

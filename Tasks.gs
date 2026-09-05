@@ -1,3 +1,54 @@
+// Колонки, які мають лишатися справжніми датами в таблиці. Спільні для аркушів
+// Tasks, Projects і Specs — див. buildSheetRow().
+const SHEET_DATE_COLUMNS = [
+  'Дата створення', 'Дата оновлення', 'Дедлайн', 'Дата виконання'
+];
+
+/**
+ * Parses a value headed for a date column into a real Date.
+ * A bare "2026-09-10" is built in local terms on purpose — `new Date(string)`
+ * would read it as UTC midnight and land on the previous day west of Greenwich.
+ * @returns {Date|null} null when the value is not a date at all
+ */
+function parseSheetDate(value) {
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+  if (!value) return null;
+
+  const text = String(value).trim();
+  const bare = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (bare) {
+    return new Date(Number(bare[1]), Number(bare[2]) - 1, Number(bare[3]));
+  }
+
+  const parsed = new Date(text);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Lays a record out in header order for a sheet write.
+ *
+ * Replaces the `|| ''` pattern, which had two faults: a `false` or `0` was
+ * blanked, and a date column that round-tripped through the client as an ISO
+ * string went back in as text. That second one was permanent — after the first
+ * edit "Дедлайн" stopped being a date and sorting and filters broke in the
+ * sheet itself.
+ * @param {string[]} headers - The sheet's header row
+ * @param {Object} record - Values keyed by header name
+ * @returns {Array} Row values ready for setValues()/appendRow()
+ */
+function buildSheetRow(headers, record) {
+  return headers.map(function (header) {
+    const value = record[header];
+    if (value === undefined || value === null) return '';
+
+    if (SHEET_DATE_COLUMNS.indexOf(header) !== -1) {
+      const asDate = parseSheetDate(value);
+      if (asDate) return asDate;
+    }
+    return value;
+  });
+}
+
 /**
  * Initializes the spreadsheet with headers if it's empty.
  */
@@ -131,7 +182,7 @@ function saveTask(task) {
   // row, not the incoming payload, is the source of truth for what's linked.
   taskToSave['CalendarEventID'] = syncTaskDeadlineEvent(taskToSave, oldDeadline, oldEventId);
 
-  const rowValues = headers.map(header => taskToSave[header] || '');
+  const rowValues = buildSheetRow(headers, taskToSave);
   
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
@@ -144,24 +195,45 @@ function saveTask(task) {
 }
 
 /**
+ * Serializes a sheet mutation across concurrent calls.
+ *
+ * Deletes read the whole sheet, work out a row index, then call deleteRow().
+ * With two calls in flight the second index is stale and removes the wrong
+ * record. The UI fires overlapping google.script.run calls, so a double-tap is
+ * enough to reach it.
+ * @param {Function} fn - The mutation to run under the lock
+ */
+function withSheetLock(fn) {
+  const lock = LockService.getUserLock();
+  lock.waitLock(15000);
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Deletes a task by ID.
  */
 function deleteTask(id) {
-  const sheet = initSheet();
-  const data = sheet.getDataRange().getValues();
-  const eventIdIdx = data[0].indexOf('CalendarEventID');
+  return withSheetLock(function () {
+    const sheet = initSheet();
+    const data = sheet.getDataRange().getValues();
+    const eventIdIdx = data[0].indexOf('CalendarEventID');
 
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] == id) {
-      if (eventIdIdx !== -1 && data[i][eventIdIdx]) {
-        deleteTaskDeadlineEvent(data[i][eventIdIdx]);
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == id) {
+        if (eventIdIdx !== -1 && data[i][eventIdIdx]) {
+          deleteTaskDeadlineEvent(data[i][eventIdIdx]);
+        }
+        sheet.deleteRow(i + 1);
+        invalidateAiContextCache();
+        return true;
       }
-      sheet.deleteRow(i + 1);
-      invalidateAiContextCache();
-      return true;
     }
-  }
-  return false;
+    return false;
+  });
 }
 
 /**
