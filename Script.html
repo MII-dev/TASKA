@@ -1320,18 +1320,48 @@
             }
 
             if (action === 'createEvent') {
-                const when = data.isAllDay
-                    ? data.startDate + ' (весь день)'
-                    : data.startDate + ' ' + data.startTime + ' – ' +
-                      (data.endDate !== data.startDate ? data.endDate + ' ' : '') + data.endTime;
+                const when = buildEventWhen(data);
 
                 return aiCardRow('Назва', data.title) +
                     aiCardRow('Коли', when) +
                     aiCardRow('Місце', data.location) +
+                    aiCardRow('Учасники', (data.guests || []).join(', ')) +
                     aiCardRow('Опис', data.description);
             }
 
             return null;
+        }
+
+        function buildEventWhen(data) {
+            if (data.isAllDay) return data.startDate + ' (весь день)';
+            return data.startDate + ' ' + data.startTime + ' – ' +
+                (data.endDate !== data.startDate ? data.endDate + ' ' : '') + data.endTime;
+        }
+
+        /**
+         * Names the contacts sheet could not settle. The event is created either
+         * way, so this is a warning rather than a failure.
+         */
+        function buildUnresolvedGuestsRow(unresolved) {
+            if (!unresolved || !unresolved.length) return '';
+
+            const notFound = unresolved
+                .filter(function (item) { return item.reason === 'not_found'; })
+                .map(function (item) { return item.name; });
+            const ambiguous = unresolved
+                .filter(function (item) { return item.reason === 'ambiguous'; })
+                .map(function (item) { return item.name; });
+
+            let html = '';
+            if (notFound.length) {
+                html += '<div style="color: var(--status-prog-text); font-size: 0.8rem;">Немає в контактах: ' +
+                    escapeHtml(notFound.join(', ')) + ' — не запрошено.</div>';
+            }
+            if (ambiguous.length) {
+                html += '<div style="color: var(--status-prog-text); font-size: 0.8rem;">Кілька збігів у контактах: ' +
+                    escapeHtml(ambiguous.join(', ')) + ' — уточніть, кого саме.</div>';
+            }
+            return html;
         }
 
         /**
@@ -1351,9 +1381,15 @@
 
             google.script.run
                 .withSuccessHandler(function (result) {
+                    const invited = (result && result.invited) || [];
+                    const unresolved = (result && result.unresolvedGuests) || [];
+
                     card.innerHTML =
                         '<div class="ai-action-title">✅ Подію створено</div>' +
-                        buildAiActionBody('createEvent', data);
+                        aiCardRow('Назва', data.title) +
+                        aiCardRow('Коли', buildEventWhen(data)) +
+                        aiCardRow('Запрошено', invited.join(', ')) +
+                        buildUnresolvedGuestsRow(unresolved);
 
                     const meetLink = (result && result.event && result.event.meetLink) || '';
                     if (meetLink.indexOf('https://') === 0) {

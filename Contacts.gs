@@ -49,6 +49,59 @@ function getContacts() {
 }
 
 /**
+ * Turns what the user said into invitable email addresses: "Олег" is looked up
+ * in the sheet, a plain address is taken as given. Names the sheet cannot settle
+ * are reported rather than guessed — inviting the wrong person is worse than
+ * inviting nobody.
+ * @param {string[]} guests - Names, emails, or a mix
+ * @returns {Object} {emails, unresolved: [{name, reason}]}
+ */
+function resolveGuestEmails(guests) {
+  const contacts = getContacts().filter(function (contact) {
+    return contact.Email && String(contact.Email).indexOf('@') > 0;
+  });
+
+  const emails = [];
+  const unresolved = [];
+  const seen = {};
+
+  function addEmail(email) {
+    const normalized = String(email).trim();
+    const key = normalized.toLowerCase();
+    if (!seen[key]) {
+      seen[key] = true;
+      emails.push(normalized);
+    }
+  }
+
+  (guests || []).forEach(function (rawGuest) {
+    const guest = String(rawGuest || '').trim();
+    if (!guest) return;
+
+    if (guest.indexOf('@') > 0) {
+      addEmail(guest);
+      return;
+    }
+
+    const needle = guest.toLowerCase();
+    const exact = contacts.filter(function (contact) {
+      return String(contact["Ім'я"] || '').trim().toLowerCase() === needle;
+    });
+    const matches = exact.length ? exact : contacts.filter(function (contact) {
+      return String(contact["Ім'я"] || '').toLowerCase().indexOf(needle) !== -1;
+    });
+
+    if (matches.length === 1) {
+      addEmail(matches[0].Email);
+    } else {
+      unresolved.push({ name: guest, reason: matches.length ? 'ambiguous' : 'not_found' });
+    }
+  });
+
+  return { emails: emails, unresolved: unresolved };
+}
+
+/**
  * Saves a contact (creates new or updates existing).
  */
 function saveContact(contact) {
@@ -83,6 +136,9 @@ function saveContact(contact) {
     sheet.appendRow(rowValues);
   }
 
+  // Контакти входять у контекст асистента — інакше він не побачить нову людину
+  invalidateAiContextCache();
+
   return contactToSave.ID;
 }
 
@@ -96,6 +152,7 @@ function deleteContact(id) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == id) {
       sheet.deleteRow(i + 1);
+      invalidateAiContextCache();
       return true;
     }
   }

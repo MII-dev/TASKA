@@ -63,6 +63,9 @@ const AI_CHAT_SYSTEM_INSTRUCTION = `
      - "withMeet" (опціонально): постав false, якщо зустріч офлайн або особиста
        (лікар, спортзал, обід, дорога). За замовчуванням до події з часом
        автоматично створюється посилання Google Meet.
+     - "guests" (опціонально): масив учасників, яких запросити. Бери адреси зі
+       списку КОНТАКТИ в контексті; якщо контакт один — став його email, якщо
+       користувач назвав людину не зі списку — став ім'я як є. Не вигадуй адрес.
 
 5. "decomposeTask" — розбити наявну задачу TaskApp на кроки.
    data: { "ID": "..." }
@@ -310,6 +313,7 @@ const AI_CTX_NOTES_LENGTH = 150;
 const AI_CTX_EVENT_DESC_LENGTH = 120;
 const AI_CTX_MAX_PROJECTS = 15;
 const AI_CTX_PROJECT_NOTES_LENGTH = 150;
+const AI_CTX_MAX_CONTACTS = 60;
 
 /**
  * Shortens text for the prompt without cutting mid-nonsense.
@@ -527,6 +531,34 @@ function getCalendarContext() {
  * @param {boolean} forceRefresh - Skip the cache
  * @returns {string} The reference context block
  */
+/**
+ * Lists contacts that can actually be invited to a meeting — only those with an
+ * email. Names go in so the assistant can recognise "запроси Олега"; the email
+ * goes in so it can pick between two people with the same first name.
+ */
+function getContactsContext() {
+  const invitable = getContacts().filter(function (contact) {
+    return contact.Email && String(contact.Email).indexOf('@') > 0;
+  });
+
+  if (invitable.length === 0) return '';
+
+  const shown = invitable.slice(0, AI_CTX_MAX_CONTACTS);
+  let context = `КОНТАКТИ, ЯКИХ МОЖНА ЗАПРОШУВАТИ (${shown.length} з ${invitable.length}):\n`;
+
+  shown.forEach(function (contact) {
+    context += `- ${contact["Ім'я"] || contact.Email} <${String(contact.Email).trim()}>`;
+    if (contact.Компанія) context += ' | ' + contact.Компанія;
+    context += '\n';
+  });
+
+  if (invitable.length > shown.length) {
+    context += `…та ще ${invitable.length - shown.length} контактів.\n`;
+  }
+
+  return context;
+}
+
 function getAiContext(forceRefresh) {
   if (!forceRefresh) {
     const cached = cacheGetJson('ai_ctx_full');
@@ -542,6 +574,9 @@ function getAiContext(forceRefresh) {
   if (projectsContext) parts.push(projectsContext);
 
   parts.push(getCalendarContext());
+
+  const contactsContext = getContactsContext();
+  if (contactsContext) parts.push(contactsContext);
 
   const clickUpContext = getClickUpContext();
   if (clickUpContext) parts.push(clickUpContext);
@@ -667,7 +702,10 @@ function normalizeAiChatResponse(raw) {
           isAllDay: !!data.isAllDay,
           location: data.location ? String(data.location) : '',
           description: data.description ? String(data.description) : '',
-          withMeet: data.withMeet !== false
+          withMeet: data.withMeet !== false,
+          guests: Array.isArray(data.guests)
+            ? data.guests.map(String).filter(Boolean)
+            : []
         }
       });
     }
@@ -752,7 +790,26 @@ function applyAiAction(action, data) {
       }
     }
 
-    return { ok: true, message: 'Подію створено.', event: event };
+    // Гості — теж доповнення: подія вже створена, і збій запрошень не має
+    // виглядати так, ніби не вийшло нічого
+    const resolved = resolveGuestEmails(payload.guests);
+    var invited = [];
+    if (resolved.emails.length) {
+      try {
+        inviteEventAttendees(event.id, resolved.emails);
+        invited = resolved.emails;
+      } catch (e) {
+        Logger.log('Запрошення не надіслано: ' + e.message);
+      }
+    }
+
+    return {
+      ok: true,
+      message: 'Подію створено.',
+      event: event,
+      invited: invited,
+      unresolvedGuests: resolved.unresolved
+    };
   }
 
   throw new Error('Невідома дія: ' + action);
