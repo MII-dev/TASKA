@@ -66,9 +66,28 @@ function resolveClickUpToken(token) {
   return resolved;
 }
 
+/**
+ * Builds a cache key for anything derived from ClickUp task state.
+ *
+ * Keys for the Space/Folder/List views carry an ID, and CacheService cannot
+ * clear by prefix — so those entries were never dropped and a status change
+ * visibly reverted on the next render. Instead of listing keys, the generation
+ * number in the prefix is bumped and every earlier entry becomes unreachable.
+ * @param {string} suffix
+ */
+function clickUpCacheKey(suffix) {
+  const generation = PropertiesService.getUserProperties().getProperty('CU_CACHE_GEN') || '1';
+  return 'cu' + generation + '_' + suffix;
+}
+
 function invalidateClickUpCache() {
   try {
-    CacheService.getUserCache().removeAll(['cu_tasks_open', 'cu_tasks_all', 'cu_awaiting_reply', 'cu_spaces_v3']);
+    const props = PropertiesService.getUserProperties();
+    const next = (Number(props.getProperty('CU_CACHE_GEN') || '1') + 1) % 100000;
+    props.setProperty('CU_CACHE_GEN', String(next));
+
+    // Список спейсів — конфігурація, а не стан задач; чистимо його явно
+    CacheService.getUserCache().removeAll(['cu_spaces_v3']);
   } catch (e) {
     Logger.log('Кеш: не вдалося скинути ClickUp: ' + e.message);
   }
@@ -376,7 +395,7 @@ function getClickUpListStatuses(listId, token) {
  * @returns {Object} {tasks, truncated, currentUser}
  */
 function fetchClickUpTasksRaw(token, includeClosed) {
-  const cacheKey = includeClosed ? 'cu_tasks_all' : 'cu_tasks_open';
+  const cacheKey = clickUpCacheKey(includeClosed ? 'tasks_all' : 'tasks_open');
   const cached = cacheGetJson(cacheKey);
   if (cached) return cached;
 
@@ -488,7 +507,7 @@ function getClickUpTasks(token, includeClosed) {
  * @returns {Object} {tasks, truncated}
  */
 function fetchClickUpTasksBySpace(token, spaceId, teamId, includeClosed) {
-  const cacheKey = 'cu_space_tasks_' + spaceId + '_' + (includeClosed ? '1' : '0');
+  const cacheKey = clickUpCacheKey('space_tasks_' + spaceId + '_' + (includeClosed ? '1' : '0'));
   const cached = cacheGetJson(cacheKey);
   if (cached) return cached;
 
@@ -580,7 +599,7 @@ function getClickUpTasksForSpace(spaceId, teamId, token, includeClosed) {
  * @returns {Object} {tasks, truncated}
  */
 function fetchClickUpTasksByFolder(token, folderId, includeClosed) {
-  const cacheKey = 'cu_folder_tasks_' + folderId + '_' + (includeClosed ? '1' : '0');
+  const cacheKey = clickUpCacheKey('folder_tasks_' + folderId + '_' + (includeClosed ? '1' : '0'));
   const cached = cacheGetJson(cacheKey);
   if (cached) return cached;
 
@@ -667,7 +686,7 @@ function getClickUpTasksForFolder(folderId, token, includeClosed) {
  * @returns {Object} {tasks, truncated}
  */
 function fetchClickUpTasksByList(token, listId, includeClosed) {
-  const cacheKey = 'cu_list_tasks_' + listId + '_' + (includeClosed ? '1' : '0');
+  const cacheKey = clickUpCacheKey('list_tasks_' + listId + '_' + (includeClosed ? '1' : '0'));
   const cached = cacheGetJson(cacheKey);
   if (cached) return cached;
 
@@ -986,7 +1005,7 @@ function getClickUpAwaitingReplyTasks() {
   const token = getClickUpToken();
   if (!token) return [];
 
-  const cached = cacheGetJson('cu_awaiting_reply');
+  const cached = cacheGetJson(clickUpCacheKey('awaiting_reply'));
   if (cached) return cached;
 
   let raw;
@@ -1021,7 +1040,7 @@ function getClickUpAwaitingReplyTasks() {
     }
   });
 
-  cachePutJson('cu_awaiting_reply', results, CLICKUP_AWAITING_REPLY_CACHE_SECONDS);
+  cachePutJson(clickUpCacheKey('awaiting_reply'), results, CLICKUP_AWAITING_REPLY_CACHE_SECONDS);
   return results;
 }
 

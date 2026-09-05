@@ -142,6 +142,8 @@ const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 const GEMINI_RETRY_CODES = [429, 500, 502, 503, 504];
 const GEMINI_MAX_RETRIES = 2; // 3 attempts total
+// Вистачає і на розбір ТЗ на десятки задач, і на довгий аналітичний звіт
+const GEMINI_MAX_OUTPUT_TOKENS = 8192;
 
 /**
  * Turns a Gemini HTTP failure into something a user can act on, instead of
@@ -187,7 +189,8 @@ function callGemini(options) {
   }
 
   const model = opts.model || GEMINI_MODEL;
-  const url = GEMINI_API_BASE + model + ':generateContent?key=' + apiKey;
+  // Ключ у заголовку, а не в query — URL осідають у логах проксі та помилок
+  const url = GEMINI_API_BASE + model + ':generateContent';
 
   // Build contents: chat history wins over a single prompt
   let contents;
@@ -221,11 +224,14 @@ function callGemini(options) {
   const generationConfig = {};
   if (opts.json) generationConfig.responseMimeType = 'application/json';
   if (typeof opts.temperature === 'number') generationConfig.temperature = opts.temperature;
+  // Без стелі обрив приходив як 200 з порожніми parts і невиразною помилкою
+  generationConfig.maxOutputTokens = opts.maxOutputTokens || GEMINI_MAX_OUTPUT_TOKENS;
   if (Object.keys(generationConfig).length > 0) payload.generationConfig = generationConfig;
 
   const fetchOptions = {
     method: 'post',
     contentType: 'application/json',
+    headers: { 'x-goog-api-key': apiKey },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };
@@ -288,12 +294,57 @@ function parseGeminiJson(text, contextLabel) {
   try {
     return JSON.parse(cleaned);
   } catch (e) {
+    // Друга спроба: вирізати сам об'єкт із тексту навколо. Дешева модель
+    // час від часу дописує пояснення до або після JSON, і раніше це летіло
+    // користувачу сирим дампом замість відповіді.
+    const extracted = extractJsonObject(cleaned);
+    if (extracted) {
+      try {
+        return JSON.parse(extracted);
+      } catch (ignored) {
+        // Провалюємось до повідомлення нижче
+      }
+    }
+
     const snippet = cleaned.length > 300 ? cleaned.substring(0, 300) + '…' : cleaned;
     throw new Error(
       'Не вдалося розібрати відповідь ШІ' + (contextLabel ? ' (' + contextLabel + ')' : '') +
       '. Модель повернула не JSON: ' + snippet
     );
   }
+}
+
+/**
+ * Pulls the first complete {...} out of surrounding prose by balancing braces,
+ * ignoring anything inside string literals so a brace in a task title cannot
+ * end the object early.
+ * @param {string} text
+ * @returns {string|null} The JSON substring, or null when there is no complete one
+ */
+function extractJsonObject(text) {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i++) {
+    const char = text[i];
+
+    if (escaped) { escaped = false; continue; }
+    if (char === '\\') { escaped = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    if (inString) continue;
+
+    if (char === '{') depth++;
+    if (char === '}') {
+      depth--;
+      if (depth === 0) return text.substring(start, i + 1);
+    }
+  }
+
+  return null;
 }
 
 /**

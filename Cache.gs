@@ -14,6 +14,21 @@ const CACHE_TTL_CLICKUP_TASKS = 120;
 const AI_CONTEXT_CACHE_KEYS = ['ai_ctx_full', 'ai_ctx_tasks'];
 
 /**
+ * Measures a string the way CacheService does — in UTF-8 bytes.
+ *
+ * String.length counts UTF-16 units, so every Cyrillic character was counted as
+ * one byte instead of two. Values up to twice the real limit sailed past the
+ * guard, put() threw the actual 100 KB error, and the throw was swallowed — so
+ * past roughly a hundred tasks the cache silently stopped working altogether
+ * and every assistant turn re-read all the sheets, calendars and ClickUp.
+ * @param {string} text
+ * @returns {number} Size in bytes
+ */
+function byteLength(text) {
+  return Utilities.newBlob(text).getBytes().length;
+}
+
+/**
  * Reads a JSON value from the user cache. Returns null on a miss or on a
  * corrupted entry — callers always have a way to recompute.
  */
@@ -34,8 +49,9 @@ function cacheGetJson(key) {
 function cachePutJson(key, value, ttlSeconds) {
   try {
     const serialized = JSON.stringify(value);
-    if (serialized.length > CACHE_MAX_VALUE_BYTES) {
-      Logger.log('Кеш: ' + key + ' завеликий (' + serialized.length + ' байт), не кешую');
+    const bytes = byteLength(serialized);
+    if (bytes > CACHE_MAX_VALUE_BYTES) {
+      Logger.log('Кеш: ' + key + ' завеликий (' + bytes + ' байт), не кешую');
       return;
     }
     CacheService.getUserCache().put(key, serialized, ttlSeconds);
@@ -58,10 +74,20 @@ function invalidateAiContextCache() {
 
 /**
  * Drops cached calendar events for every look-ahead window the app uses.
+ *
+ * The key is built from the caller's own daysAhead, so a hardcoded pair of
+ * windows drifted out of date the moment a new one appeared: the assistant
+ * caches a 2-day window that nothing ever cleared, and went on describing a
+ * meeting for another three minutes after it was deleted. Clearing the whole
+ * plausible range costs one call and cannot fall behind again.
  */
 function invalidateCalendarCache() {
   try {
-    CacheService.getUserCache().removeAll(['cal_events_1', 'cal_events_7']);
+    const keys = [];
+    for (var days = 1; days <= 31; days++) {
+      keys.push('cal_events_' + days);
+    }
+    CacheService.getUserCache().removeAll(keys);
   } catch (e) {
     Logger.log('Кеш: не вдалося скинути календар: ' + e.message);
   }
