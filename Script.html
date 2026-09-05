@@ -1172,7 +1172,13 @@
                     }
 
                     (response.actions || []).forEach(function (item) {
-                        renderAiActionCard(item.action, item.data);
+                        // Події створюються одразу — правити їх легше вже в календарі,
+                        // ніж підтверджувати кожну картку
+                        if (item.action === 'createEvent') {
+                            runAiEventNow(item.data);
+                        } else {
+                            renderAiActionCard(item.action, item.data);
+                        }
                     });
                 })
                 .withFailureHandler(err => {
@@ -1245,7 +1251,6 @@
             createTask: { title: '➕ Створення задачі', confirm: 'Створити', danger: false },
             updateTask: { title: '✏️ Зміна задачі', confirm: 'Застосувати', danger: false },
             deleteTask: { title: '🗑️ Видалення задачі', confirm: 'Видалити', danger: true },
-            createEvent: { title: '📅 Нова подія в календарі', confirm: 'Створити подію', danger: false },
             decomposeTask: { title: '🧩 Розбити на кроки', confirm: 'Розбити', danger: false }
         };
 
@@ -1330,6 +1335,73 @@
         }
 
         /**
+         * Creates a calendar event straight away and reports the result, including
+         * the Meet link when one was provisioned with it.
+         */
+        function runAiEventNow(data) {
+            const msgsContainer = document.getElementById('aiChatMessages');
+            const card = document.createElement('div');
+            card.className = 'ai-action-card';
+            card.innerHTML =
+                '<div class="ai-action-title">📅 Створюю подію...</div>' +
+                buildAiActionBody('createEvent', data);
+
+            msgsContainer.appendChild(card);
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    card.innerHTML =
+                        '<div class="ai-action-title">✅ Подію створено</div>' +
+                        buildAiActionBody('createEvent', data);
+
+                    const meetLink = (result && result.event && result.event.meetLink) || '';
+                    if (meetLink.indexOf('https://') === 0) {
+                        card.appendChild(buildMeetLinkRow(meetLink));
+                    }
+
+                    msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                    loadCalendarEvents();
+                })
+                .withFailureHandler(function (err) {
+                    card.innerHTML =
+                        '<div class="ai-action-title">📅 Подію не створено</div>' +
+                        '<div style="color: var(--danger); font-size: 0.82rem;">' +
+                        escapeHtml(err.message || String(err)) + '</div>';
+                })
+                .applyAiAction('createEvent', data);
+        }
+
+        /**
+         * Built as DOM rather than markup so the URL never passes through innerHTML.
+         */
+        function buildMeetLinkRow(meetLink) {
+            const row = document.createElement('div');
+            row.className = 'ai-event-meet';
+
+            const link = document.createElement('a');
+            link.href = meetLink;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = '🎥 Приєднатися до Meet';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'ai-btn-sm';
+            copyBtn.textContent = 'Копіювати';
+            copyBtn.onclick = function () {
+                if (!navigator.clipboard) return;
+                navigator.clipboard.writeText(meetLink).then(function () {
+                    copyBtn.textContent = 'Скопійовано';
+                    setTimeout(function () { copyBtn.textContent = 'Копіювати'; }, 1500);
+                }).catch(function () { });
+            };
+
+            row.appendChild(link);
+            row.appendChild(copyBtn);
+            return row;
+        }
+
+        /**
          * Shows a proposed action with Confirm / Cancel. Nothing is applied until
          * the user confirms — the assistant never writes silently.
          */
@@ -1384,7 +1456,6 @@
                         card.innerHTML = '<div style="color: var(--status-done-text); font-size: 0.85rem;">✅ ' +
                             escapeHtml((result && result.message) || 'Готово.') + '</div>';
                         loadTasks();
-                        if (action === 'createEvent') loadCalendarEvents();
                     })
                     .withFailureHandler(function (err) {
                         confirmBtn.disabled = false;

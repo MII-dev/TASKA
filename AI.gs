@@ -60,14 +60,20 @@ const AI_CHAT_SYSTEM_INSTRUCTION = `
      - "endTime" (опціонально): HH:MM, за замовчуванням +1 година від початку
      - "isAllDay" (опціонально): true для події на весь день
      - "location" (опціонально), "description" (опціонально)
+     - "withMeet" (опціонально): постав false, якщо зустріч офлайн або особиста
+       (лікар, спортзал, обід, дорога). За замовчуванням до події з часом
+       автоматично створюється посилання Google Meet.
 
 5. "decomposeTask" — розбити наявну задачу TaskApp на кроки.
    data: { "ID": "..." }
 
 Пам'ятай:
-- Дії НЕ виконуються одразу — користувач побачить картку і має підтвердити її вручну.
-  Тому у полі "text" пиши в майбутньому часі: "Підготував задачу — перевір і підтверди",
-  а не "Задачу створено".
+- Дії із задачами НЕ виконуються одразу — користувач побачить картку і має підтвердити
+  її вручну. Тому у полі "text" пиши в майбутньому часі: "Підготував задачу — перевір
+  і підтверди", а не "Задачу створено".
+- Виняток — "createEvent": подія створюється одразу, без підтвердження. Про неї пиши
+  в минулому часі ("Створив зустріч на четвер о 15:00"), і не переказуй саме посилання
+  на Meet — користувач побачить його в картці події.
 - Завжди звіряй ID задач із контекстом перед тим, як їх оновлювати чи видаляти.
 - Будь уважним з датами. Поточна дата надається в контексті.
 - Повертай ТІЛЬКИ валідний JSON-об'єкт. Ніякого зайвого тексту поза JSON.
@@ -660,7 +666,8 @@ function normalizeAiChatResponse(raw) {
           endTime: data.endTime ? String(data.endTime) : '10:00',
           isAllDay: !!data.isAllDay,
           location: data.location ? String(data.location) : '',
-          description: data.description ? String(data.description) : ''
+          description: data.description ? String(data.description) : '',
+          withMeet: data.withMeet !== false
         }
       });
     }
@@ -733,6 +740,17 @@ function applyAiAction(action, data) {
       throw new Error('Для події потрібні назва та дата початку.');
     }
     const event = createCalendarEvent(payload);
+
+    // Подія з часом за замовчуванням отримує Meet, щоб не відкривати її вручну.
+    // Конференція — доповнення: якщо не вийшло, подія все одно створена.
+    if (!payload.isAllDay && payload.withMeet !== false) {
+      try {
+        event.meetLink = createMeetForEvent(event.id).link;
+      } catch (e) {
+        Logger.log('Meet для події не створено: ' + e.message);
+      }
+    }
+
     return { ok: true, message: 'Подію створено.', event: event };
   }
 
