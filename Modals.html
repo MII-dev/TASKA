@@ -149,7 +149,44 @@
                 <div class="form-group">
                     <label for="eventLocation">Місце</label>
                     <input type="text" id="eventLocation" placeholder="Офіс, Google Meet, Zoom...">
+                    <div class="event-meet-actions" id="eventMeetActions">
+                        <button type="button" class="btn btn-outline btn-sm" id="createMeetBtn"
+                            onclick="handleCreateMeetLink()">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                            </svg>
+                            <span id="createMeetBtnText">Створити Google Meet</span>
+                        </button>
+                        <button type="button" class="btn btn-outline btn-sm" id="copyMeetBtn"
+                            onclick="handleCopyMeetLink()" hidden>
+                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                            </svg>
+                            <span id="copyMeetBtnText">Копіювати</span>
+                        </button>
+                    </div>
                 </div>
+
+                <div class="form-group" id="eventGuestsGroup">
+                    <label for="eventGuestEmails">Учасники</label>
+                    <div class="event-guest-list" id="eventGuestList"></div>
+                    <div class="event-contact-picker" id="eventContactPicker"></div>
+                    <div class="event-invite-row">
+                        <input type="text" id="eventGuestEmails" placeholder="email@example.com, ще@example.com">
+                        <button type="button" class="btn btn-outline btn-sm" id="inviteGuestsBtn"
+                            onclick="handleInviteGuests()">
+                            <span id="inviteGuestsBtnText">Запросити</span>
+                        </button>
+                    </div>
+                </div>
+
+                <p class="event-save-first-hint" id="eventSaveFirstHint" hidden>
+                    Google Meet і запрошення стануть доступні після збереження події.
+                </p>
 
                 <div class="form-group">
                     <label for="eventDescription">Опис</label>

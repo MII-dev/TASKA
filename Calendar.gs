@@ -311,6 +311,170 @@ function updateCalendarEvent(eventId, eventData) {
 }
 
 /**
+ * Calls the Calendar REST API with the script's OAuth token. CalendarApp can
+ * neither create conferences nor invite guests with a notification, so those
+ * two operations go through REST instead.
+ * @param {string} path - Path and query after /calendars/primary/events
+ * @param {string} method - 'get' or 'patch'
+ * @param {Object} payload - Request body for patch
+ * @returns {Object} Parsed API response
+ */
+function calendarApiFetch(path, method, payload) {
+  const options = {
+    method: method,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    contentType: 'application/json',
+    muteHttpExceptions: true
+  };
+  if (payload) {
+    options.payload = JSON.stringify(payload);
+  }
+
+  const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events' + path;
+  const response = UrlFetchApp.fetch(url, options);
+  const body = JSON.parse(response.getContentText() || '{}');
+
+  const code = response.getResponseCode();
+  if (code === 404) {
+    throw new Error('Подію не знайдено в основному календарі — Meet і запрошення працюють лише для подій у ньому.');
+  }
+  if (code >= 400) {
+    throw new Error((body.error && body.error.message) || 'Calendar API помилка');
+  }
+  return body;
+}
+
+/**
+ * CalendarApp IDs carry an "@google.com" suffix that the REST API rejects.
+ */
+function toRestEventId(eventId) {
+  return String(eventId).replace(/@google\.com$/, '');
+}
+
+/**
+ * Pulls the video-conference URL out of an events.get/patch response.
+ */
+function extractMeetLink(event) {
+  const entryPoints = (event.conferenceData && event.conferenceData.entryPoints) || [];
+  for (var i = 0; i < entryPoints.length; i++) {
+    if (entryPoints[i].entryPointType === 'video' && entryPoints[i].uri) {
+      return entryPoints[i].uri;
+    }
+  }
+  return event.hangoutLink || '';
+}
+
+/**
+ * Attaches a Google Meet conference to an existing event, so the link shows up
+ * as a real "Join" button in Calendar and in guests' invitations. Returns the
+ * conference already on the event if there is one, rather than creating a second.
+ * @param {string} eventId
+ * @returns {Object} {link}
+ */
+function createMeetForEvent(eventId) {
+  const restId = toRestEventId(eventId);
+  const existing = calendarApiFetch('/' + encodeURIComponent(restId) + '?conferenceDataVersion=1', 'get');
+
+  const existingLink = extractMeetLink(existing);
+  if (existingLink) {
+    return { link: existingLink };
+  }
+
+  const updated = calendarApiFetch(
+    '/' + encodeURIComponent(restId) + '?conferenceDataVersion=1',
+    'patch',
+    {
+      conferenceData: {
+        createRequest: {
+          requestId: Utilities.getUuid(),
+          conferenceSolutionKey: { type: 'hangoutsMeet' }
+        }
+      }
+    }
+  );
+
+  var link = extractMeetLink(updated);
+
+  // Google provisions the conference asynchronously; on a "pending" create
+  // request the link is only there on a follow-up read.
+  if (!link) {
+    Utilities.sleep(1500);
+    const refetched = calendarApiFetch('/' + encodeURIComponent(restId) + '?conferenceDataVersion=1', 'get');
+    link = extractMeetLink(refetched);
+  }
+
+  if (!link) {
+    throw new Error('Google Meet не створився — спробуйте ще раз за кілька секунд.');
+  }
+
+  invalidateCalendarCache();
+  invalidateAiContextCache();
+
+  return { link: link };
+}
+
+/**
+ * Lists who is already invited to an event, for the edit modal.
+ * @param {string} eventId
+ * @returns {Object} {attendees}
+ */
+function getEventGuests(eventId) {
+  const event = calendarApiFetch('/' + encodeURIComponent(toRestEventId(eventId)), 'get');
+  return {
+    attendees: (event.attendees || []).map(function (attendee) {
+      return { email: attendee.email, status: attendee.responseStatus || 'needsAction' };
+    })
+  };
+}
+
+/**
+ * Adds guests to an event and emails them the invitation. Guests already on the
+ * event are kept — a patch with an attendees array replaces the whole list.
+ * @param {string} eventId
+ * @param {string[]} emails
+ * @returns {Object} {attendees} - Every guest on the event after the update
+ */
+function inviteEventAttendees(eventId, emails) {
+  const wanted = (emails || [])
+    .map(function (email) { return String(email).trim().toLowerCase(); })
+    .filter(function (email) { return email.indexOf('@') > 0; });
+
+  if (!wanted.length) {
+    throw new Error('Не вказано жодної коректної email-адреси.');
+  }
+
+  const restId = toRestEventId(eventId);
+  const event = calendarApiFetch('/' + encodeURIComponent(restId), 'get');
+
+  const merged = (event.attendees || []).slice();
+  const seen = {};
+  merged.forEach(function (attendee) {
+    seen[String(attendee.email).toLowerCase()] = true;
+  });
+  wanted.forEach(function (email) {
+    if (!seen[email]) {
+      merged.push({ email: email });
+      seen[email] = true;
+    }
+  });
+
+  const updated = calendarApiFetch(
+    '/' + encodeURIComponent(restId) + '?sendUpdates=all',
+    'patch',
+    { attendees: merged }
+  );
+
+  invalidateCalendarCache();
+  invalidateAiContextCache();
+
+  return {
+    attendees: (updated.attendees || []).map(function (attendee) {
+      return { email: attendee.email, status: attendee.responseStatus || 'needsAction' };
+    })
+  };
+}
+
+/**
  * Deletes a calendar event by ID, as an explicit user action (unlike
  * deleteTaskDeadlineEvent, failures here are not swallowed — the user
  * clicked Delete and should see if it didn't work).

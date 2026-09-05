@@ -15,6 +15,7 @@
             --primary: #6366f1;
             --primary-hover: #4f52d9;
             --danger: #f2685c;
+            --success: #34d399;
         }
 
         * {
@@ -36,37 +37,15 @@
         .card {
             width: 100%;
             max-width: 420px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-        }
-
-        h1 {
-            font-size: 1.1rem;
-            margin: 0;
-            text-align: center;
-        }
-
-        .hint {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-align: center;
-            margin: 0;
-        }
-
-        .mic-wrap {
-            display: flex;
-            justify-content: center;
-            padding: 0.5rem 0;
+            gap: 1.25rem;
+            align-items: center;
         }
 
         .mic-btn {
-            width: 84px;
-            height: 84px;
+            width: 128px;
+            height: 128px;
             border-radius: 50%;
             border: none;
             background: var(--primary);
@@ -75,16 +54,22 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.2s ease;
+            flex-shrink: 0;
         }
 
         .mic-btn:hover {
             background: var(--primary-hover);
         }
 
-        .mic-btn.recording {
+        .mic-btn.listening {
             background: var(--danger);
             animation: pulse 1.4s ease-out infinite;
+        }
+
+        .mic-btn.sending {
+            background: var(--success);
+            animation: none;
         }
 
         @keyframes pulse {
@@ -93,7 +78,7 @@
             }
 
             70% {
-                box-shadow: 0 0 0 16px rgba(242, 104, 92, 0);
+                box-shadow: 0 0 0 28px rgba(242, 104, 92, 0);
             }
 
             100% {
@@ -102,23 +87,28 @@
         }
 
         .status {
+            font-size: 1rem;
             text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            min-height: 1.2em;
+            min-height: 1.4em;
+        }
+
+        .status.error {
+            color: var(--danger);
+            font-size: 0.9rem;
         }
 
         textarea {
             width: 100%;
-            min-height: 110px;
+            min-height: 96px;
             resize: vertical;
-            background: #0f1115;
+            background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
             color: var(--text);
-            padding: 0.65rem 0.75rem;
+            padding: 0.75rem;
             font-family: inherit;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            line-height: 1.45;
             outline: none;
         }
 
@@ -129,16 +119,17 @@
         .actions {
             display: flex;
             gap: 8px;
+            width: 100%;
         }
 
         button.action {
             flex: 1;
-            padding: 0.65rem;
-            border-radius: 8px;
+            padding: 0.85rem;
+            border-radius: 10px;
             border: 1px solid var(--border);
             background: transparent;
             color: var(--text);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             cursor: pointer;
         }
 
@@ -157,42 +148,45 @@
             cursor: not-allowed;
         }
 
-        .error {
-            color: var(--danger);
-            font-size: 0.85rem;
+        .hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
             text-align: center;
+            margin: 0;
         }
     </style>
 </head>
 
 <body>
     <div class="card">
-        <h1>🎤 Голосове введення для TASKA</h1>
-        <p class="hint">Натисніть мікрофон і говоріть українською. Текст можна виправити перед відправкою в чат.</p>
+        <button class="mic-btn" id="micBtn" title="Мікрофон">
+            <svg width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" viewBox="0 0 24 24">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+        </button>
 
-        <div class="mic-wrap">
-            <button class="mic-btn" id="micBtn" title="Почати/зупинити запис">
-                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="23"></line>
-                    <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
-            </button>
-        </div>
-
-        <div class="status" id="status">Натисніть мікрофон, щоб почати</div>
+        <div class="status" id="status">Запускаю мікрофон...</div>
 
         <textarea id="transcript" placeholder="Розпізнаний текст з'явиться тут..."></textarea>
 
         <div class="actions">
             <button class="action" id="cancelBtn">Скасувати</button>
-            <button class="action primary" id="sendBtn" disabled>Вставити в чат</button>
+            <button class="action primary" id="sendBtn" disabled>Надіслати</button>
         </div>
+
+        <p class="hint">Говоріть — за паузою текст надішлеться сам. Тапніть будь-де, щоб зупинити авто-відправку.</p>
     </div>
 
     <script>
+        // Пауза в мовленні, після якої вважаємо репліку завершеною
+        const SILENCE_MS = 2500;
+        // Вікно, протягом якого можна скасувати авто-відправку
+        const COUNTDOWN_MS = 3000;
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const micBtn = document.getElementById('micBtn');
         const statusEl = document.getElementById('status');
@@ -201,17 +195,126 @@
         const cancelBtn = document.getElementById('cancelBtn');
 
         let recognition = null;
-        let isRecording = false;
+        let isListening = false;
         let finalTranscript = '';
+        let silenceTimer = null;
+        let countdownTimer = null;
 
-        function updateSendState() {
+        function setStatus(text, isError) {
+            statusEl.textContent = text;
+            statusEl.className = isError ? 'status error' : 'status';
+        }
+
+        function syncSendBtn() {
             sendBtn.disabled = !transcriptEl.value.trim();
         }
 
-        transcriptEl.addEventListener('input', updateSendState);
+        function clearTimers() {
+            clearTimeout(silenceTimer);
+            clearInterval(countdownTimer);
+            silenceTimer = null;
+            countdownTimer = null;
+        }
+
+        function stopListening() {
+            isListening = false;
+            micBtn.classList.remove('listening');
+            if (recognition) {
+                try { recognition.stop(); } catch (e) { /* not running */ }
+            }
+        }
+
+        function startListening() {
+            if (!recognition || isListening) return;
+            clearTimers();
+            isListening = true;
+            micBtn.classList.remove('sending');
+            micBtn.classList.add('listening');
+            try {
+                recognition.start();
+            } catch (e) {
+                // вже запущено — стан вирівняється в onstart
+            }
+        }
+
+        /** Зупиняє авто-відправку, лишаючи текст для ручного правлення. */
+        function abortAutoSend() {
+            if (!countdownTimer && !silenceTimer) return;
+            const wasCountingDown = !!countdownTimer;
+            clearTimers();
+            micBtn.classList.remove('sending');
+            if (wasCountingDown) {
+                setStatus('Авто-відправку скасовано — виправте текст і надішліть');
+            }
+        }
+
+        function send() {
+            const text = transcriptEl.value.trim();
+            if (!text) return;
+            clearTimers();
+            stopListening();
+            if (window.opener) {
+                window.opener.postMessage({ source: 'taska-voice', text: text }, '*');
+            }
+            window.close();
+        }
+
+        /** Показує коротке вікно на скасування, після якого текст іде в чат сам. */
+        function beginAutoSend() {
+            if (!transcriptEl.value.trim()) return;
+            stopListening();
+            micBtn.classList.add('sending');
+
+            let left = Math.ceil(COUNTDOWN_MS / 1000);
+            setStatus('Надсилаю через ' + left + '...');
+            countdownTimer = setInterval(function () {
+                left -= 1;
+                if (left <= 0) {
+                    clearTimers();
+                    send();
+                } else {
+                    setStatus('Надсилаю через ' + left + '...');
+                }
+            }, 1000);
+        }
+
+        function scheduleAutoSend() {
+            clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(beginAutoSend, SILENCE_MS);
+        }
+
+        transcriptEl.addEventListener('input', function () {
+            abortAutoSend();
+            finalTranscript = transcriptEl.value;
+            syncSendBtn();
+        });
+
+        // Будь-який дотик до сторінки зупиняє відлік — щоб встигнути втрутитись
+        document.addEventListener('pointerdown', function (event) {
+            if (event.target === sendBtn || event.target === cancelBtn) return;
+            abortAutoSend();
+        });
+
+        sendBtn.addEventListener('click', send);
+
+        cancelBtn.addEventListener('click', function () {
+            clearTimers();
+            stopListening();
+            window.close();
+        });
+
+        micBtn.addEventListener('click', function () {
+            if (isListening) {
+                stopListening();
+                setStatus(transcriptEl.value.trim() ? 'Зупинено. Перевірте текст.' : 'Зупинено');
+            } else {
+                setStatus('Слухаю...');
+                startListening();
+            }
+        });
 
         if (!SpeechRecognition) {
-            statusEl.innerHTML = '<span class="error">Цей браузер не підтримує розпізнавання мовлення. Спробуйте Chrome або Edge.</span>';
+            setStatus('Цей браузер не підтримує розпізнавання мовлення. Спробуйте Chrome або Edge.', true);
             micBtn.disabled = true;
         } else {
             recognition = new SpeechRecognition();
@@ -221,7 +324,7 @@
             recognition.maxAlternatives = 1;
 
             recognition.onstart = function () {
-                statusEl.textContent = 'Слухаю...';
+                setStatus('Слухаю...');
             };
 
             recognition.onresult = function (event) {
@@ -235,56 +338,32 @@
                     }
                 }
                 transcriptEl.value = (finalTranscript + interim).trim();
-                updateSendState();
+                syncSendBtn();
+                scheduleAutoSend();
             };
 
             recognition.onerror = function (event) {
                 if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    statusEl.innerHTML = '<span class="error">Доступ до мікрофона заблоковано. Дозвольте його в налаштуваннях сайту в браузері.</span>';
-                    isRecording = false;
-                    micBtn.classList.remove('recording');
+                    isListening = false;
+                    micBtn.classList.remove('listening');
+                    setStatus('Доступ до мікрофона заблоковано. Дозвольте його в налаштуваннях сайту.', true);
                 } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-                    statusEl.innerHTML = '<span class="error">Помилка: ' + event.error + '</span>';
+                    setStatus('Помилка: ' + event.error, true);
                 }
             };
 
+            // Браузер сам обриває сесію на довгій тиші — поки користувач не зупинив
+            // мікрофон явно, продовжуємо слухати, щоб не треба було тиснути кнопку
             recognition.onend = function () {
-                if (isRecording) {
-                    try { recognition.start(); } catch (e) { /* already stopped */ }
+                if (isListening) {
+                    try { recognition.start(); } catch (e) { /* перезапуск не потрібен */ }
                 } else {
-                    micBtn.classList.remove('recording');
-                    statusEl.textContent = transcriptEl.value.trim() ? 'Готово. Перевірте текст нижче.' : 'Натисніть мікрофон, щоб почати';
+                    micBtn.classList.remove('listening');
                 }
             };
 
-            micBtn.addEventListener('click', function () {
-                if (isRecording) {
-                    isRecording = false;
-                    recognition.stop();
-                } else {
-                    isRecording = true;
-                    micBtn.classList.add('recording');
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        // recognition already active; ignore
-                    }
-                }
-            });
+            startListening();
         }
-
-        sendBtn.addEventListener('click', function () {
-            const text = transcriptEl.value.trim();
-            if (!text) return;
-            if (window.opener) {
-                window.opener.postMessage({ source: 'taska-voice', text: text }, '*');
-            }
-            window.close();
-        });
-
-        cancelBtn.addEventListener('click', function () {
-            window.close();
-        });
     </script>
 </body>
 

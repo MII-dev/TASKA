@@ -812,6 +812,9 @@
                 document.getElementById('eventLocation').value = existingEvent.location || '';
                 document.getElementById('eventDescription').value = existingEvent.description || '';
                 toggleAllDay();
+
+                setEventMeetLink(existingEvent.hangoutLink || '');
+                loadEventGuests(existingEvent.eventId);
             } else {
                 editingEventId = null;
                 document.getElementById('eventModalTitle').innerText = 'Нова подія в календарі';
@@ -823,7 +826,19 @@
                 document.getElementById('eventEndDate').value = today;
                 document.getElementById('eventStartTime').value = '09:00';
                 document.getElementById('eventEndTime').value = '10:00';
+
+                setEventMeetLink('');
+                renderEventGuests([]);
             }
+
+            // Meet і запрошення чіпляються до наявної події — для нової їх нема куди чіпляти
+            const savedEvent = !!editingEventId;
+            document.getElementById('eventMeetActions').hidden = !savedEvent;
+            document.getElementById('eventGuestsGroup').hidden = !savedEvent;
+            document.getElementById('eventSaveFirstHint').hidden = savedEvent;
+
+            document.getElementById('eventGuestEmails').value = '';
+            renderEventContactPicker();
 
             modal.classList.add('active');
         }
@@ -835,6 +850,178 @@
 
         function closeEventModal() {
             document.getElementById('eventModal').classList.remove('active');
+        }
+
+        // ==========================================
+        // ===== Google Meet & event attendees ======
+        // ==========================================
+
+        let currentEventMeetLink = '';
+
+        function setEventMeetLink(link) {
+            currentEventMeetLink = link || '';
+            document.getElementById('copyMeetBtn').hidden = !currentEventMeetLink;
+            document.getElementById('createMeetBtnText').innerText =
+                currentEventMeetLink ? 'Google Meet створено' : 'Створити Google Meet';
+        }
+
+        function insertMeetLinkIntoLocation() {
+            if (!currentEventMeetLink) return;
+
+            const locationInput = document.getElementById('eventLocation');
+            const existing = locationInput.value.trim();
+            if (!existing) {
+                locationInput.value = currentEventMeetLink;
+            } else if (existing.indexOf(currentEventMeetLink) === -1) {
+                locationInput.value = existing + ' · ' + currentEventMeetLink;
+            }
+        }
+
+        function handleCreateMeetLink() {
+            if (!editingEventId) return;
+
+            const btn = document.getElementById('createMeetBtn');
+            const label = document.getElementById('createMeetBtnText');
+            const original = label.innerText;
+            btn.disabled = true;
+            label.innerText = 'Створення...';
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    btn.disabled = false;
+                    setEventMeetLink(result.link);
+                    insertMeetLinkIntoLocation();
+                    loadCalendarEvents();
+                })
+                .withFailureHandler(function (err) {
+                    btn.disabled = false;
+                    label.innerText = original;
+                    alert('Не вдалося створити Google Meet: ' + (err.message || err));
+                })
+                .createMeetForEvent(editingEventId);
+        }
+
+        function handleCopyMeetLink() {
+            if (!currentEventMeetLink || !navigator.clipboard) return;
+            const label = document.getElementById('copyMeetBtnText');
+            navigator.clipboard.writeText(currentEventMeetLink).then(function () {
+                label.innerText = 'Скопійовано';
+                setTimeout(function () { label.innerText = 'Копіювати'; }, 1500);
+            }).catch(function () { });
+        }
+
+        function renderEventContactPicker() {
+            const picker = document.getElementById('eventContactPicker');
+            picker.innerHTML = '';
+
+            (contactsData || [])
+                .filter(function (contact) {
+                    return contact.Email && String(contact.Email).indexOf('@') > 0;
+                })
+                .forEach(function (contact) {
+                    const email = String(contact.Email).trim();
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'contact-chip';
+                    chip.textContent = contact["Ім'я"] || email;
+                    chip.title = email;
+                    chip.addEventListener('click', function () { toggleGuestEmail(email, chip); });
+                    picker.appendChild(chip);
+                });
+        }
+
+        function parseGuestEmails() {
+            return document.getElementById('eventGuestEmails').value
+                .split(/[,;\s]+/)
+                .map(function (email) { return email.trim(); })
+                .filter(Boolean);
+        }
+
+        function toggleGuestEmail(email, chip) {
+            const emails = parseGuestEmails();
+            const index = emails.findIndex(function (item) {
+                return item.toLowerCase() === email.toLowerCase();
+            });
+
+            if (index >= 0) {
+                emails.splice(index, 1);
+                chip.classList.remove('selected');
+            } else {
+                emails.push(email);
+                chip.classList.add('selected');
+            }
+
+            document.getElementById('eventGuestEmails').value = emails.join(', ');
+        }
+
+        function renderEventGuests(attendees) {
+            const list = document.getElementById('eventGuestList');
+            list.innerHTML = '';
+
+            const STATUS_LABELS = {
+                accepted: 'прийняв',
+                declined: 'відхилив',
+                tentative: 'можливо',
+                needsAction: 'очікує'
+            };
+
+            (attendees || []).forEach(function (attendee) {
+                const row = document.createElement('div');
+                row.className = 'event-guest';
+
+                const email = document.createElement('span');
+                email.textContent = attendee.email;
+
+                const status = document.createElement('span');
+                status.className = 'event-guest-status';
+                status.textContent = STATUS_LABELS[attendee.status] || attendee.status;
+
+                row.appendChild(email);
+                row.appendChild(status);
+                list.appendChild(row);
+            });
+        }
+
+        function loadEventGuests(eventId) {
+            renderEventGuests([]);
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    renderEventGuests(result.attendees);
+                })
+                .withFailureHandler(function () {
+                    // Список гостей — довідковий; помилка не має блокувати редагування
+                })
+                .getEventGuests(eventId);
+        }
+
+        function handleInviteGuests() {
+            if (!editingEventId) return;
+
+            const emails = parseGuestEmails();
+            if (!emails.length) {
+                alert('Вкажіть хоча б одну email-адресу або оберіть контакт.');
+                return;
+            }
+
+            const btn = document.getElementById('inviteGuestsBtn');
+            const label = document.getElementById('inviteGuestsBtnText');
+            btn.disabled = true;
+            label.innerText = 'Надсилання...';
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    btn.disabled = false;
+                    label.innerText = 'Запросити';
+                    document.getElementById('eventGuestEmails').value = '';
+                    renderEventContactPicker();
+                    renderEventGuests(result.attendees);
+                })
+                .withFailureHandler(function (err) {
+                    btn.disabled = false;
+                    label.innerText = 'Запросити';
+                    alert('Не вдалося надіслати запрошення: ' + (err.message || err));
+                })
+                .inviteEventAttendees(editingEventId, emails);
         }
 
         function toggleAllDay() {
@@ -1030,7 +1217,9 @@
             const input = document.getElementById('aiChatInput');
             const existing = input.value.trim();
             input.value = existing ? existing + ' ' + text : text;
-            input.focus();
+
+            document.getElementById('aiChatPanel').classList.add('active');
+            sendAiChatMessage();
         });
 
         function addAiMsg(text, sender) {

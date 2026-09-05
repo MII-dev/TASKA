@@ -144,6 +144,89 @@
             background-color: var(--bg-input);
         }
 
+        .btn-sm {
+            padding: 0.45rem 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 500;
+            box-shadow: none;
+        }
+
+        .event-meet-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .event-contact-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+            max-height: 96px;
+            overflow-y: auto;
+        }
+
+        .contact-chip {
+            padding: 0.3rem 0.6rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all var(--transition-base) var(--ease);
+        }
+
+        .contact-chip:hover {
+            border-color: var(--primary);
+            color: var(--text-main);
+        }
+
+        .contact-chip.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .event-invite-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .event-invite-row input {
+            flex: 1;
+            margin-bottom: 0 !important;
+        }
+
+        .event-guest-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-bottom: 8px;
+        }
+
+        .event-guest {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .event-guest-status {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .event-save-first-hint {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin: -0.5rem 0 1rem;
+        }
+
         .controls {
             display: flex;
             gap: 1rem;
@@ -1278,7 +1361,7 @@
 
         .ai-chat-mic {
             background: var(--bg-input);
-            color: var(--text-secondary);
+            color: var(--text-muted);
             border: 1px solid var(--border);
             width: 36px;
             height: 36px;
