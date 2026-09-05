@@ -18,7 +18,7 @@
                     }
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка завантаження: ' + err);
+                    showToast('Помилка завантаження: ' + err);
                 })
                 .getTasks();
         }
@@ -47,7 +47,7 @@
             if (!project) return '';
             const branch = (project.Гілки || []).find(b => b.id === task['Гілка']);
             const label = branch ? `${project.Назва} / ${branch.name}` : project.Назва;
-            return `<span class="tag-category tag-category-accent" title="Проєкт">🗂️ ${label}</span>`;
+            return `<span class="tag-category tag-category-accent" title="Проєкт">🗂️ ${escapeHtml(label)}</span>`;
         }
 
         function updateDashboard() {
@@ -159,7 +159,7 @@
                         ${steps.map((s, sIdx) => `
                             <label class="card-step-item ${s.done ? 'is-done' : ''}">
                                 <input type="checkbox" class="card-step-checkbox" ${s.done ? 'checked' : ''} onchange="toggleStepInline('${task.ID}', ${sIdx}, this)">
-                                <span class="card-step-text">${s.text}</span>
+                                <span class="card-step-text">${escapeHtml(s.text)}</span>
                             </label>
                         `).join('')}
                     </div>
@@ -168,23 +168,23 @@
 
             // Compact list view — two rows: info + notes
             return `
-                <div class="task-card ${getPriorityClass(task.Пріоритет)}" style="animation-delay: ${index * 0.03}s; flex-direction: column; align-items: stretch; gap: 0;" onclick="editTask('${task.ID}')" ${dragAttr} title="${(task.Опис || '').replace(/"/g, '&quot;')}">
+                <div class="task-card ${getPriorityClass(task.Пріоритет)}" style="animation-delay: ${index * 0.03}s; flex-direction: column; align-items: stretch; gap: 0;" onclick="editTask('${task.ID}')" ${dragAttr} title="${escapeHtml(task.Опис || '')}">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div class="task-header">
-                            <div class="task-title">${task.Назва}</div>
-                            ${task.Тип ? `<span class="tag-category">${task.Тип}</span>` : ''}
+                            <div class="task-title">${escapeHtml(task.Назва)}</div>
+                            ${task.Тип ? `<span class="tag-category">${escapeHtml(task.Тип)}</span>` : ''}
                             ${getTaskProjectBadgeHtml(task)}
                             ${stepsHtml}
-                            <span class="badge ${getBadgeClass(task.Статус)}">${task.Статус}</span>
+                            <span class="badge ${getBadgeClass(task.Статус)}">${escapeHtml(task.Статус)}</span>
                         </div>
                         <div class="task-meta">
                             <span class="${getDeadlineClass(task.Дедлайн, task.Статус)}">📅 ${formatDate(task.Дедлайн)}</span>
                             ${task['Дата виконання'] ? `<span class="text-done-accent">✅ ${formatDate(task['Дата виконання'])}</span>` : ''}
-                            ${task.Виконавець ? `<span class="tag-assignee">👤 ${task.Виконавець}</span>` : '<span class="tag-assignee">👤 Я</span>'}
+                            ${task.Виконавець ? `<span class="tag-assignee">👤 ${escapeHtml(task.Виконавець)}</span>` : '<span class="tag-assignee">👤 Я</span>'}
                         </div>
                         <div class="card-actions">
-                            ${task['Посилання на результат'] ? `
-                                <a class="card-result-link" href="${task['Посилання на результат']}" target="_blank" onclick="event.stopPropagation()" title="Переглянути результат">
+                            ${safeUrl(task['Посилання на результат']) ? `
+                                <a class="card-result-link" href="${safeUrl(task['Посилання на результат'])}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Переглянути результат">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                                 </a>
                             ` : ''}
@@ -196,7 +196,7 @@
                         </div>
                     </div>
                     ${miniStepsHtml}
-                    <textarea class="inline-notes" placeholder="Нотатки..." onclick="event.stopPropagation()" onchange="saveInlineNotes('${task.ID}', this)">${task.Коментарі || ''}</textarea>
+                    <textarea class="inline-notes" placeholder="Нотатки..." onclick="event.stopPropagation()" onchange="saveInlineNotes('${task.ID}', this)">${escapeHtml(task.Коментарі || '')}</textarea>
                 </div>
             `;
         }
@@ -217,7 +217,7 @@
                         ${steps.map((s, sIdx) => `
                             <label class="card-step-item ${s.done ? 'is-done' : ''}">
                                 <input type="checkbox" class="card-step-checkbox" ${s.done ? 'checked' : ''} onchange="toggleStepInline('${task.ID}', ${sIdx}, this)">
-                                <span class="card-step-text">${s.text}</span>
+                                <span class="card-step-text">${escapeHtml(s.text)}</span>
                             </label>
                         `).join('')}
                     </div>
@@ -227,20 +227,20 @@
             return `
                 <div class="task-card ${getPriorityClass(task.Пріоритет)}" style="animation-delay: ${index * 0.03}s; flex-direction: column; align-items: stretch;" onclick="editTask('${task.ID}')" ${dragAttr}>
                     <div class="task-header" style="margin-bottom: 0.25rem;">
-                        <div class="task-title" style="white-space: normal;">${task.Назва}</div>
+                        <div class="task-title" style="white-space: normal;">${escapeHtml(task.Назва)}</div>
                     </div>
                     <div style="margin-bottom: 0.3rem; display: flex; gap: 4px; flex-wrap: wrap;">
-                        ${task.Тип ? `<span class="tag-category">${task.Тип}</span>` : ''}
+                        ${task.Тип ? `<span class="tag-category">${escapeHtml(task.Тип)}</span>` : ''}
                         ${getTaskProjectBadgeHtml(task)}
                         ${stepsHtml}
                     </div>
                     ${miniStepsHtml}
                     <div class="task-meta" style="flex-wrap: wrap;">
                         <span class="${getDeadlineClass(task.Дедлайн, task.Статус)}">📅 ${formatDate(task.Дедлайн)}</span>
-                        ${task.Виконавець ? `<span class="tag-assignee">👤 ${task.Виконавець}</span>` : '<span class="tag-assignee">👤 Я</span>'}
+                        ${task.Виконавець ? `<span class="tag-assignee">👤 ${escapeHtml(task.Виконавець)}</span>` : '<span class="tag-assignee">👤 Я</span>'}
                     </div>
                     <div style="margin-top: 0.3rem; border-top: 1px dashed var(--border); padding-top: 0.3rem;">
-                        <textarea class="inline-notes" placeholder="Нотатки..." onclick="event.stopPropagation()" onchange="saveInlineNotes('${task.ID}', this)">${task.Коментарі || ''}</textarea>
+                        <textarea class="inline-notes" placeholder="Нотатки..." onclick="event.stopPropagation()" onchange="saveInlineNotes('${task.ID}', this)">${escapeHtml(task.Коментарі || '')}</textarea>
                     </div>
                     ${task.Статус !== 'Виконано' ? `
                         <div style="display: flex; justify-content: flex-end; margin-top: 0.25rem;">
@@ -270,7 +270,7 @@
                     setTimeout(() => textarea.style.borderColor = originalBorder, 1500);
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка збереження нотаток: ' + err);
+                    showToast('Помилка збереження нотаток: ' + err);
                     textarea.style.borderColor = 'var(--danger)';
                 })
                 .saveTask(task);
@@ -307,7 +307,7 @@
                     updateDashboard();
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка оновлення стану кроку: ' + err);
+                    showToast('Помилка оновлення стану кроку: ' + err);
                     checkbox.checked = !checkbox.checked;
                     labelNode.style.textDecoration = checkbox.checked ? 'line-through' : 'none';
                     labelNode.style.color = checkbox.checked ? 'var(--text-muted)' : 'var(--text-main)';
@@ -366,7 +366,7 @@
 
                 google.script.run
                     .withFailureHandler(err => {
-                        alert('Помилка оновлення статусу: ' + err);
+                        showToast('Помилка оновлення статусу: ' + err);
                         loadTasks();
                     })
                     .saveTask(task);
@@ -542,7 +542,7 @@
                     btn.innerText = 'Зберегти';
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка збереження: ' + err);
+                    showToast('Помилка збереження: ' + err);
                     btn.disabled = false;
                     btn.innerText = 'Зберегти';
                 })
@@ -556,12 +556,17 @@
         function markAsDone(id, btnElement) {
             if (!confirm('Позначити задачу як виконану?')) return;
 
+            // Задачу шукаємо ДО того, як вимкнути кнопку: на застарілому списку
+            // ранній вихід лишав кнопку в стані завантаження назавжди
+            const task = allTasks.find(t => t.ID === id);
+            if (!task) {
+                loadTasks();
+                return;
+            }
+
             const originalText = btnElement.innerHTML;
             btnElement.disabled = true;
             btnElement.innerHTML = '<div class="loader" style="width: 12px; height: 12px; border-width: 2px; border-bottom-color: #10b981;"></div>';
-
-            const task = allTasks.find(t => t.ID === id);
-            if (!task) return;
 
             task.Статус = 'Виконано';
             task['Дата виконання'] = new Date().toISOString();
@@ -571,7 +576,7 @@
                     loadTasks();
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка оновлення: ' + err);
+                    showToast('Помилка оновлення: ' + err);
                     btnElement.disabled = false;
                     btnElement.innerHTML = originalText;
                 })
@@ -595,7 +600,7 @@
                         btn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg> Видалити';
                     })
                     .withFailureHandler(err => {
-                        alert('Помилка видалення: ' + err);
+                        showToast('Помилка видалення: ' + err);
                         btn.disabled = false;
                         btn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg> Видалити';
                     })
@@ -671,7 +676,7 @@
                             <div class="calendar-event calendar-event-deadline" title="Синхронізовано з дедлайном задачі">
                                 <div class="event-time-block"><span class="event-time-allday">📋</span></div>
                                 <div class="event-info">
-                                    <div class="event-title">${ev.title.replace(/^📋\s*/, '')}</div>
+                                    <div class="event-title">${escapeHtml(ev.title.replace(/^📋\s*/, ''))}</div>
                                 </div>
                             </div>
                         `;
@@ -690,7 +695,7 @@
                         timeBlock = `<span class="event-time-start">${startTime}</span><span class="event-time-end">${endTime}</span>`;
                     }
 
-                    const locationHtml = ev.location ? `<div class="event-location"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${ev.location}</div>` : '';
+                    const locationHtml = ev.location ? `<div class="event-location"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${escapeHtml(ev.location)}</div>` : '';
 
                     // Detect meeting links: conferenceData from API, then fallback to text search
                     let meetLink = null;
@@ -702,7 +707,7 @@
                     }
                     let actionsHtml = '<div class="event-actions">';
                     if (meetLink) {
-                        actionsHtml += `<a href="${meetLink.url}" target="_blank" class="event-join-btn ${meetLink.type}" onclick="event.stopPropagation()" title="${meetLink.url}"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>${meetLink.label}</a>`;
+                        actionsHtml += `<a href="${safeUrl(meetLink.url)}" target="_blank" rel="noopener" class="event-join-btn ${meetLink.type}" onclick="event.stopPropagation()" title="${escapeHtml(meetLink.url)}"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>${meetLink.label}</a>`;
                     }
                     // Titles go into data attributes, not into a JS string built by
                     // concatenation — a backslash or quote in a title used to break the handler
@@ -711,11 +716,11 @@
 
                     html += `
                         <div class="calendar-event ${nowClass}" style="border-left-color: ${ev.color}; cursor: pointer;"
-                            title="${ev.calendarName} — клацни, щоб редагувати"
+                            title="${escapeHtml(ev.calendarName)} — клацни, щоб редагувати"
                             onclick="openEventForEditById('${escapeHtml(ev.eventId)}')">
                             <div class="event-time-block">${timeBlock}</div>
                             <div class="event-info">
-                                <div class="event-title">${ev.title}</div>
+                                <div class="event-title">${escapeHtml(ev.title)}</div>
                                 ${locationHtml}
                                 ${actionsHtml}
                             </div>
@@ -896,7 +901,7 @@
                 .withFailureHandler(function (err) {
                     btn.disabled = false;
                     label.innerText = original;
-                    alert('Не вдалося створити Google Meet: ' + (err.message || err));
+                    showToast('Не вдалося створити Google Meet: ' + (err.message || err));
                 })
                 .createMeetForEvent(editingEventId);
         }
@@ -999,7 +1004,7 @@
 
             const emails = parseGuestEmails();
             if (!emails.length) {
-                alert('Вкажіть хоча б одну email-адресу або оберіть контакт.');
+                showToast('Вкажіть хоча б одну email-адресу або оберіть контакт.');
                 return;
             }
 
@@ -1019,7 +1024,7 @@
                 .withFailureHandler(function (err) {
                     btn.disabled = false;
                     label.innerText = 'Запросити';
-                    alert('Не вдалося надіслати запрошення: ' + (err.message || err));
+                    showToast('Не вдалося надіслати запрошення: ' + (err.message || err));
                 })
                 .inviteEventAttendees(editingEventId, emails);
         }
@@ -1057,7 +1062,7 @@
                     btnText.innerText = originalLabel;
                 })
                 .withFailureHandler(function (err) {
-                    alert('Помилка збереження події: ' + (err.message || err));
+                    showToast('Помилка збереження події: ' + (err.message || err));
                     btn.disabled = false;
                     btnText.innerText = originalLabel;
                 });
@@ -1083,7 +1088,7 @@
                     deleteBtn.disabled = false;
                 })
                 .withFailureHandler(function (err) {
-                    alert('Помилка видалення події: ' + (err.message || err));
+                    showToast('Помилка видалення події: ' + (err.message || err));
                     deleteBtn.disabled = false;
                 })
                 .deleteCalendarEvent(editingEventId);
@@ -1626,7 +1631,7 @@
                         // Shouldn't happen — the server validates this — but
                         // opening a blank task modal with no explanation is
                         // worse than a slightly redundant warning here.
-                        alert('ШІ не зміг сформувати задачу з цього тексту. Спробуй ще раз.');
+                        showToast('ШІ не зміг сформувати задачу з цього тексту. Спробуй ще раз.');
                         return;
                     }
 
@@ -1641,7 +1646,7 @@
                     if (taskData.Тип) document.getElementById('category').value = taskData.Тип;
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка створення задачі: ' + err);
+                    showToast('Помилка створення задачі: ' + err);
                     input.disabled = false;
                     submitBtn.disabled = false;
                     cancelBtn.disabled = false;
@@ -1653,7 +1658,7 @@
         function aiAutofillTask() {
             const title = document.getElementById('title').value.trim();
             if (!title) {
-                alert('Будь ласка, введіть назву задачі спочатку.');
+                showToast('Будь ласка, введіть назву задачі спочатку.');
                 return;
             }
 
@@ -1683,7 +1688,7 @@
                     }
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка автозаповнення: ' + err);
+                    showToast('Помилка автозаповнення: ' + err);
                     btn.disabled = false;
                     btn.innerHTML = originalHtml;
                 })
@@ -1695,7 +1700,7 @@
             const title = document.getElementById('title').value.trim();
             const description = document.getElementById('description').value.trim();
             if (!title) {
-                alert('Будь ласка, введіть назву задачі спочатку.');
+                showToast('Будь ласка, введіть назву задачі спочатку.');
                 return;
             }
 
@@ -1719,7 +1724,7 @@
                         filterTasks();
                     })
                     .withFailureHandler(err => {
-                        alert('Помилка декомпозиції: ' + err);
+                        showToast('Помилка декомпозиції: ' + err);
                         btn.disabled = false;
                         btn.innerHTML = originalHtml;
                     })
@@ -1734,7 +1739,7 @@
                         renderModalSteps(steps, null);
                     })
                     .withFailureHandler(err => {
-                        alert('Помилка декомпозиції: ' + err);
+                        showToast('Помилка декомпозиції: ' + err);
                         btn.disabled = false;
                         btn.innerHTML = originalHtml;
                     })
@@ -1800,7 +1805,7 @@
                         filterTasks();
                     })
                     .withFailureHandler(err => {
-                        alert('Помилка оновлення стану кроку: ' + err);
+                        showToast('Помилка оновлення стану кроку: ' + err);
                         checkbox.checked = !checkbox.checked;
                         textInput.style.textDecoration = checkbox.checked ? 'line-through' : 'none';
                         textInput.style.color = checkbox.checked ? 'var(--text-muted)' : 'var(--text-main)';
@@ -1830,7 +1835,7 @@
                         filterTasks();
                     })
                     .withFailureHandler(err => {
-                        alert('Помилка збереження кроку: ' + err);
+                        showToast('Помилка збереження кроку: ' + err);
                     })
                     .saveTaskSteps(taskId, modalSteps);
             }
@@ -1852,7 +1857,7 @@
                         filterTasks();
                     })
                     .withFailureHandler(err => {
-                        alert('Помилка збереження тексту кроку: ' + err);
+                        showToast('Помилка збереження тексту кроку: ' + err);
                     })
                     .saveTaskSteps(taskId, modalSteps);
             }
@@ -1869,7 +1874,7 @@
                         filterTasks();
                     })
                     .withFailureHandler(err => {
-                        alert('Помилка видалення кроку: ' + err);
+                        showToast('Помилка видалення кроку: ' + err);
                     })
                     .saveTaskSteps(taskId, modalSteps);
             }
@@ -1936,7 +1941,7 @@
                 })
                 .withFailureHandler(err => {
                     btn.disabled = false;
-                    alert('Не вдалося змінити налаштування нагадувань: ' + (err.message || String(err)));
+                    showToast('Не вдалося змінити налаштування нагадувань: ' + (err.message || String(err)));
                 })
                 .toggleDailyDigest();
         }
@@ -1973,7 +1978,7 @@
             const input = document.getElementById('aiApiKeyInput');
             const key = input.value.trim();
             if (!key) {
-                alert('Введіть API ключ.');
+                showToast('Введіть API ключ.');
                 return;
             }
 
@@ -1988,12 +1993,12 @@
                     btn.innerText = originalText;
                     input.value = '';
                     document.getElementById('aiSetupBanner').style.display = 'none';
-                    alert('API ключ успішно збережено!');
+                    showToast('API ключ успішно збережено!', 'success');
                 })
                 .withFailureHandler(err => {
                     btn.disabled = false;
                     btn.innerText = originalText;
-                    alert('Не вдалося зберегти чи перевірити ключ: ' + err);
+                    showToast('Не вдалося зберегти чи перевірити ключ: ' + err);
                 })
                 .setApiKey(key);
         }
@@ -2319,16 +2324,16 @@
             const branchesHtml = branches.map(b => {
                 const bTasks = tasks.filter(t => t['Гілка'] === b.id);
                 const done = bTasks.filter(t => t.Статус === 'Виконано').length;
-                return `<span class="tag-category">🔀 ${b.name} ${done}/${bTasks.length}</span>`;
+                return `<span class="tag-category">🔀 ${escapeHtml(b.name)} ${done}/${bTasks.length}</span>`;
             }).join('');
 
             return `
                 <div class="project-card" onclick="openProjectDetail('${project.ID}')">
                     <div class="project-card-header">
-                        <div class="project-card-title">${project.Назва}</div>
-                        <span class="badge ${getProjectBadgeClass(project.Статус)}">${project.Статус || ''}</span>
+                        <div class="project-card-title">${escapeHtml(project.Назва)}</div>
+                        <span class="badge ${getProjectBadgeClass(project.Статус)}">${escapeHtml(project.Статус || '')}</span>
                     </div>
-                    ${project.Опис ? `<div class="project-card-desc">${project.Опис}</div>` : ''}
+                    ${project.Опис ? `<div class="project-card-desc">${escapeHtml(project.Опис)}</div>` : ''}
                     ${branchesHtml ? `<div class="project-card-branches">${branchesHtml}</div>` : ''}
                     <div class="project-card-stats">
                         <span>Активних: <strong>${activeCount}</strong></span>
@@ -2416,7 +2421,7 @@
                             <div>
                                 <label class="project-branch-subsection-label">📝 Нотатки гілки</label>
                                 <textarea class="branch-inline-notes" placeholder="Нотатки по цій гілці..."
-                                    onchange="saveBranchNotes('${project.ID}', '${b.id}', this)">${b.notes || ''}</textarea>
+                                    onchange="saveBranchNotes('${project.ID}', '${b.id}', this)">${escapeHtml(b.notes || '')}</textarea>
                             </div>
 
                             <div>
@@ -2458,8 +2463,8 @@
                 <button class="project-detail-back" onclick="closeProjectDetail()">← Назад до проєктів</button>
                 <div class="project-detail-header">
                     <div>
-                        <h2 style="font-family: 'Outfit', sans-serif; font-size: var(--text-2xl); color: var(--text-main); margin-bottom: 0.4rem;">${project.Назва}</h2>
-                        <span class="badge ${getProjectBadgeClass(project.Статус)}">${project.Статус || ''}</span>
+                        <h2 style="font-family: 'Outfit', sans-serif; font-size: var(--text-2xl); color: var(--text-main); margin-bottom: 0.4rem;">${escapeHtml(project.Назва)}</h2>
+                        <span class="badge ${getProjectBadgeClass(project.Статус)}">${escapeHtml(project.Статус || '')}</span>
                         <span class="project-staleness-label ${getProjectStalenessClass(project['Дата оновлення'])}">🕒 Востаннє оновлено: ${formatDate(project['Дата оновлення'])}</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
@@ -2472,7 +2477,7 @@
                     ${branchesTasksHtml}
                 </div>
 
-                ${project.Опис ? `<div class="project-detail-section"><h3>📝 Нотатки</h3><p style="color: var(--text-main); white-space: pre-wrap;">${project.Опис}</p></div>` : ''}
+                ${project.Опис ? `<div class="project-detail-section"><h3>📝 Нотатки</h3><p style="color: var(--text-main); white-space: pre-wrap;">${escapeHtml(project.Опис)}</p></div>` : ''}
 
                 <div class="project-detail-section">
                     <h3>👤 Контакти / стейкхолдери</h3>
@@ -2521,7 +2526,7 @@
                 return `
                     <div class="project-contact-row" style="cursor: pointer;" onclick="openSpecModal('${spec.ID}', '${project.ID}', '${spec['Тип']}')">
                         <span style="font-weight: 600;">${escapeHtml(spec.Назва)}</span>
-                        <span class="badge ${getSpecBadgeClass(spec['Статус'])}">${spec['Статус'] || ''}</span>
+                        <span class="badge ${getSpecBadgeClass(spec['Статус'])}">${escapeHtml(spec['Статус'] || '')}</span>
                         ${originChip}
                         <button type="button" class="ai-btn-sm" id="specGenBtn_${spec.ID}"
                             onclick="event.stopPropagation(); generateTasksFromSpec('${spec.ID}')"
@@ -2616,7 +2621,7 @@
             const title = document.getElementById('specTitle').value.trim();
             const goal = document.getElementById('specGoalInput').value.trim();
             if (!goal) {
-                alert('Опишіть мету чи ідею — інакше ШІ немає з чого починати.');
+                showToast('Опишіть мету чи ідею — інакше ШІ немає з чого починати.');
                 return;
             }
 
@@ -2636,7 +2641,7 @@
                     }
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка створення чернетки: ' + (err.message || err));
+                    showToast('Помилка створення чернетки: ' + (err.message || err));
                     btn.disabled = false;
                     btn.innerText = originalText;
                 })
@@ -2670,7 +2675,7 @@
                     updateSpecContentCharCount();
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка формування ТЗ: ' + (err.message || err));
+                    showToast('Помилка формування ТЗ: ' + (err.message || err));
                     btn.disabled = false;
                     btn.innerText = originalText;
                 })
@@ -2681,11 +2686,11 @@
             const instruction = document.getElementById('specReviseInstruction').value.trim();
             const content = document.getElementById('specContent').value;
             if (!instruction) {
-                alert('Опишіть, що потрібно змінити.');
+                showToast('Опишіть, що потрібно змінити.');
                 return;
             }
             if (!content.trim()) {
-                alert('Спершу додайте зміст документа — переписувати поки що нічого.');
+                showToast('Спершу додайте зміст документа — переписувати поки що нічого.');
                 return;
             }
 
@@ -2703,7 +2708,7 @@
                     updateSpecContentCharCount();
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка редагування: ' + (err.message || err));
+                    showToast('Помилка редагування: ' + (err.message || err));
                     btn.disabled = false;
                     btn.innerText = originalText;
                 })
@@ -2862,7 +2867,7 @@
             const spec = specsData.find(s => s.ID === specId);
             if (!spec) return;
             if (!spec['Зміст'] || !spec['Зміст'].trim()) {
-                alert('Документ порожній — спершу додайте зміст.');
+                showToast('Документ порожній — спершу додайте зміст.');
                 return;
             }
 
@@ -2876,7 +2881,7 @@
                     btn.disabled = false;
                     btn.innerHTML = originalHtml;
                     if (!items || items.length === 0) {
-                        alert('ШІ не запропонував жодної задачі з цього документа.');
+                        showToast('ШІ не запропонував жодної задачі з цього документа.');
                         return;
                     }
                     openTaskReviewModal(spec.Назва, spec['Проєкт'], items);
@@ -2884,7 +2889,7 @@
                 .withFailureHandler(err => {
                     btn.disabled = false;
                     btn.innerHTML = originalHtml;
-                    alert('Помилка генерації задач: ' + (err.message || err));
+                    showToast('Помилка генерації задач: ' + (err.message || err));
                 })
                 .aiGenerateTasksFromSpec(spec['Зміст'], spec['Проєкт']);
         }
@@ -3016,7 +3021,7 @@
         function submitSpecTaskReview() {
             const selected = specReviewItems.filter(i => i.selected);
             if (selected.length === 0) {
-                alert('Оберіть хоча б одну задачу.');
+                showToast('Оберіть хоча б одну задачу.');
                 return;
             }
 
@@ -3061,7 +3066,7 @@
                 })
                 .withFailureHandler(err => {
                     btn.disabled = false;
-                    alert('Не вдалося створити гілки: ' + (err.message || err));
+                    showToast('Не вдалося створити гілки: ' + (err.message || err));
                 })
                 .saveProject(project);
         }
@@ -3074,7 +3079,7 @@
                 if (created + failed >= selected.length) {
                     btn.disabled = false;
                     if (failed > 0) {
-                        alert(`Створено ${created} з ${selected.length} задач. ${failed} не вдалося створити — перевірте консоль.`);
+                        showToast(`Створено ${created} з ${selected.length} задач. ${failed} не вдалося створити — перевірте консоль.`);
                     }
                     closeSpecTaskReviewModal();
                     loadTasks();
@@ -3139,7 +3144,7 @@
                         .getSpecs();
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка збереження документа: ' + (err.message || err));
+                    showToast('Помилка збереження документа: ' + (err.message || err));
                     btn.disabled = false;
                     btn.innerText = originalLabel;
                 })
@@ -3165,7 +3170,7 @@
                         .withFailureHandler(err => console.error('Failed to reload specs:', err))
                         .getSpecs();
                 })
-                .withFailureHandler(err => alert('Помилка видалення: ' + (err.message || err)))
+                .withFailureHandler(err => showToast('Помилка видалення: ' + (err.message || err)))
                 .deleteSpec(id);
         }
 
@@ -3202,7 +3207,7 @@
                     setTimeout(() => textarea.style.borderColor = originalBorder, 1500);
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка збереження нотаток: ' + err);
+                    showToast('Помилка збереження нотаток: ' + err);
                 })
                 .saveProject(project);
         }
@@ -3228,7 +3233,7 @@
 
             google.script.run
                 .withSuccessHandler(() => renderProjectDetail(project))
-                .withFailureHandler(err => alert('Помилка збереження посилання: ' + err))
+                .withFailureHandler(err => showToast('Помилка збереження посилання: ' + err))
                 .saveProject(project);
         }
 
@@ -3240,7 +3245,7 @@
 
             google.script.run
                 .withSuccessHandler(() => renderProjectDetail(project))
-                .withFailureHandler(err => alert('Помилка видалення посилання: ' + err))
+                .withFailureHandler(err => showToast('Помилка видалення посилання: ' + err))
                 .saveProject(project);
         }
 
@@ -3380,7 +3385,7 @@
                     btn.innerText = 'Зберегти';
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка збереження проєкту: ' + err);
+                    showToast('Помилка збереження проєкту: ' + err);
                     btn.disabled = false;
                     btn.innerText = 'Зберегти';
                 })
@@ -3399,7 +3404,7 @@
                     loadProjects();
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка видалення: ' + err);
+                    showToast('Помилка видалення: ' + err);
                 })
                 .deleteProject(id);
         }
@@ -3420,7 +3425,7 @@
             const project = projectsData.find(p => p.ID === projectId);
             const branches = project ? (project.Гілки || []) : [];
             select.innerHTML = '<option value="">— Без гілки —</option>' +
-                branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+                branches.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`).join('');
             select.disabled = branches.length === 0;
         }
 
@@ -3535,16 +3540,16 @@
             }
 
             if (email) {
-                let html = '<a class="contact-quick-btn" href="mailto:' + email + '"';
+                let html = '<a class="contact-quick-btn" href="mailto:' + escapeHtml(email) + '"';
                 html += ' onclick="event.stopPropagation()" title="Написати листа">';
-                html += '✉️ ' + email + '</a>';
+                html += '✉️ ' + escapeHtml(email) + '</a>';
                 actions.push(html);
             }
 
             if (contact.Telegram) {
                 const handle = contact.Telegram.replace(/^@/, '');
                 const telegramUrl = 'https:' + '//t.me/' + handle;
-                let html = '<a class="contact-quick-btn" href="' + telegramUrl + '" target="_blank"';
+                let html = '<a class="contact-quick-btn" href="' + escapeHtml(telegramUrl) + '" target="_blank" rel="noopener"';
                 html += ' onclick="event.stopPropagation()" title="Написати в Telegram">';
                 html += '📨 Telegram</a>';
                 actions.push(html);
@@ -3552,7 +3557,7 @@
 
             if (phone) {
                 let html = '<button type="button" class="contact-quick-btn"';
-                html += ' onclick="copyContactValue(\'' + phone + '\', event)" title="Скопіювати номер">';
+                html += ' onclick="copyContactValue(\'' + escapeJsArg(phone) + '\', event)" title="Скопіювати номер">';
                 html += '📋 Копіювати</button>';
                 actions.push(html);
             }
@@ -3567,13 +3572,13 @@
             return `
                 <div class="contact-card" onclick="openContactModal('${contact.ID}')">
                     <div class="contact-card-header">
-                        <div class="contact-name">${name}</div>
+                        <div class="contact-name">${escapeHtml(name)}</div>
                         ${favBtn}
                     </div>
-                    ${posLine ? `<div class="contact-pos">${posLine}</div>` : ''}
-                    ${contact.Категорія ? `<span class="tag-category ${catClass}">${contact.Категорія}</span>` : ''}
+                    ${posLine ? `<div class="contact-pos">${escapeHtml(posLine)}</div>` : ''}
+                    ${contact.Категорія ? `<span class="tag-category ${catClass}">${escapeHtml(contact.Категорія)}</span>` : ''}
                     ${actions.length ? `<div class="contact-quick-actions">${actions.join('')}</div>` : ''}
-                    ${contact.Нотатки ? `<div class="contact-notes-preview">${contact.Нотатки}</div>` : ''}
+                    ${contact.Нотатки ? `<div class="contact-notes-preview">${escapeHtml(contact.Нотатки)}</div>` : ''}
                 </div>
             `;
         }
@@ -3592,7 +3597,7 @@
             contact['Обраний'] = !contact['Обраний'];
             renderContacts();
             google.script.run
-                .withFailureHandler(err => alert('Помилка збереження: ' + err))
+                .withFailureHandler(err => showToast('Помилка збереження: ' + err))
                 .saveContact(contact);
         }
 
@@ -3663,7 +3668,7 @@
                     btn.innerText = 'Зберегти';
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка збереження контакту: ' + err);
+                    showToast('Помилка збереження контакту: ' + err);
                     btn.disabled = false;
                     btn.innerText = 'Зберегти';
                 })
@@ -3681,7 +3686,7 @@
                     loadContacts();
                 })
                 .withFailureHandler(err => {
-                    alert('Помилка видалення: ' + err);
+                    showToast('Помилка видалення: ' + err);
                 })
                 .deleteContact(id);
         }
@@ -3788,7 +3793,7 @@
             const input = document.getElementById('clickUpTokenInput');
             const token = input.value.trim();
             if (!token) {
-                alert('Будь ласка, введіть ClickUp API Token.');
+                showToast('Будь ласка, введіть ClickUp API Token.');
                 return;
             }
 
@@ -3809,7 +3814,7 @@
                 .withFailureHandler(function (err) {
                     btn.disabled = false;
                     btn.innerText = originalText;
-                    alert('Не вдалося підключити ClickUp: ' + (err.message || String(err)));
+                    showToast('Не вдалося підключити ClickUp: ' + (err.message || String(err)));
                 })
                 .setClickUpToken(token);
         }
@@ -4654,7 +4659,7 @@
          */
         function applyClickUpUpdate(taskId, updates, control, previousValue, field) {
             if (!clickUpHasToken) {
-                alert('ClickUp не підключено. Підключіть його спочатку у вкладці ClickUp.');
+                showToast('ClickUp не підключено. Підключіть його спочатку у вкладці ClickUp.');
                 return;
             }
 
@@ -4684,7 +4689,7 @@
                 .withFailureHandler(function (err) {
                     control.disabled = false;
                     control.value = previousValue;
-                    alert('Не вдалося оновити задачу: ' + (err.message || String(err)));
+                    showToast('Не вдалося оновити задачу: ' + (err.message || String(err)));
                 })
                 .updateClickUpTask(taskId, null, updates);
         }
@@ -4782,7 +4787,7 @@
 
         function openClickUpDetails(taskId) {
             if (!clickUpHasToken) {
-                alert('ClickUp не підключено. Підключіть його спочатку у вкладці ClickUp.');
+                showToast('ClickUp не підключено. Підключіть його спочатку у вкладці ClickUp.');
                 return;
             }
 
@@ -4889,7 +4894,7 @@
                 .withFailureHandler(function (err) {
                     btn.disabled = false;
                     btn.innerText = originalText;
-                    alert('Не вдалося завантажити задачу: ' + (err.message || String(err)));
+                    showToast('Не вдалося завантажити задачу: ' + (err.message || String(err)));
                 })
                 .getClickUpTaskDetails(taskId, null);
         }
@@ -5062,13 +5067,71 @@
             return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
         }
 
+        /**
+         * Неблокуюче повідомлення замість alert().
+         *
+         * Нативний alert морозить сторінку в Safari на iOS, а застосунком
+         * користуються переважно з телефона. Помилки висять довше за успіхи —
+         * їх треба встигнути прочитати; тап закриває достроково.
+         * @param {string} message
+         * @param {string} [type] - 'error' (типово) або 'success'
+         */
+        function showToast(message, type) {
+            let host = document.getElementById('toastHost');
+            if (!host) {
+                host = document.createElement('div');
+                host.id = 'toastHost';
+                host.className = 'toast-host';
+                document.body.appendChild(host);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + (type === 'success' ? 'success' : 'error');
+            toast.textContent = String(message);
+
+            const remove = function () {
+                toast.classList.add('is-leaving');
+                setTimeout(function () { toast.remove(); }, 200);
+            };
+            toast.addEventListener('click', remove);
+
+            host.appendChild(toast);
+            setTimeout(remove, type === 'success' ? 3000 : 6000);
+        }
+
+        /**
+         * Готує значення для підстановки в рядок JS усередині атрибута
+         * (onclick="fn('…')"). Спершу екранування для JS, потім для HTML —
+         * парсер розкодує сутності, і JS отримає вже коректний рядок. Самого
+         * escapeHtml тут мало: &#39; він розкодує назад в апостроф, який закриє
+         * рядок і зламає обробник.
+         */
+        function escapeJsArg(value) {
+            return escapeHtml(String(value === null || value === undefined ? '' : value)
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'"));
+        }
+
+        /**
+         * Готує URL для href. Порожньо для всього, що не http(s) — інакше
+         * посилання виду javascript:… з поля задачі виконалось би по кліку.
+         */
+        function safeUrl(url) {
+            const text = String(url || '').trim();
+            return /^https?:\/\//i.test(text) ? escapeHtml(text) : '';
+        }
+
+        // Апостроф обов'язковий: значення підставляються і в одинарні лапки
+        // onclick-атрибутів, а в українських іменах на кшталт "Дар'я" він
+        // трапляється постійно і робив кнопку мертвою.
         function escapeHtml(str) {
             if (!str) return '';
             return String(str)
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         // ==========================================
@@ -5079,7 +5142,7 @@
 
         function openClickUpComments(taskId) {
             if (!clickUpHasToken) {
-                alert('ClickUp не підключено. Підключіть його спочатку у вкладці ClickUp.');
+                showToast('ClickUp не підключено. Підключіть його спочатку у вкладці ClickUp.');
                 return;
             }
 
@@ -5202,7 +5265,7 @@
                     inputEl.disabled = false;
                     sendBtn.disabled = false;
                     sendBtn.innerText = 'Надіслати';
-                    alert('Не вдалося надіслати коментар: ' + (err.message || String(err)));
+                    showToast('Не вдалося надіслати коментар: ' + (err.message || String(err)));
                 })
                 .postClickUpTaskComment(currentClickUpTaskId, null, commentText);
         }
