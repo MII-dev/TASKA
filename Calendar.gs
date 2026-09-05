@@ -414,6 +414,26 @@ function createMeetForEvent(eventId) {
 }
 
 /**
+ * Writes the conference URL into the event's location, so it is copyable from
+ * the "Місце" field instead of only living in conferenceData. The edit modal
+ * does this client-side for manual clicks, where the user can still back out
+ * before saving; this is for events created without a modal to review.
+ * @param {string} eventId
+ * @param {string} link
+ */
+function appendMeetLinkToLocation(eventId, link) {
+  const event = CalendarApp.getEventById(eventId);
+  if (!event || !link) return;
+
+  const existing = (event.getLocation() || '').trim();
+  if (existing.indexOf(link) !== -1) return;
+
+  event.setLocation(existing ? existing + ' · ' + link : link);
+  invalidateCalendarCache();
+  invalidateAiContextCache();
+}
+
+/**
  * Lists who is already invited to an event, for the edit modal.
  * @param {string} eventId
  * @returns {Object} {attendees}

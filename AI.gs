@@ -746,6 +746,7 @@ function applyAiAction(action, data) {
     if (!payload.isAllDay && payload.withMeet !== false) {
       try {
         event.meetLink = createMeetForEvent(event.id).link;
+        appendMeetLinkToLocation(event.id, event.meetLink);
       } catch (e) {
         Logger.log('Meet для події не створено: ' + e.message);
       }
