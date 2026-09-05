@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TASKA — Голосове введення</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --card: #171a21;
+            --border: #2a2e38;
+            --text: #e8eaed;
+            --text-muted: #9aa0ac;
+            --primary: #6366f1;
+            --primary-hover: #4f52d9;
+            --danger: #f2685c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            padding: 1.5rem;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            text-align: center;
+        }
+
+        .hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin: 0;
+        }
+
+        .mic-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 0.5rem 0;
+        }
+
+        .mic-btn {
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mic-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .mic-btn.recording {
+            background: var(--danger);
+            animation: pulse 1.4s ease-out infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(242, 104, 92, 0.5);
+            }
+
+            70% {
+                box-shadow: 0 0 0 16px rgba(242, 104, 92, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(242, 104, 92, 0);
+            }
+        }
+
+        .status {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            min-height: 1.2em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            background: #0f1115;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 0.65rem 0.75rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        button.action {
+            flex: 1;
+            padding: 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        button.action.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        button.action.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        button.action:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .error {
+            color: var(--danger);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>🎤 Голосове введення для TASKA</h1>
+        <p class="hint">Натисніть мікрофон і говоріть українською. Текст можна виправити перед відправкою в чат.</p>
+
+        <div class="mic-wrap">
+            <button class="mic-btn" id="micBtn" title="Почати/зупинити запис">
+                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="status" id="status">Натисніть мікрофон, щоб почати</div>
+
+        <textarea id="transcript" placeholder="Розпізнаний текст з'явиться тут..."></textarea>
+
+        <div class="actions">
+            <button class="action" id="cancelBtn">Скасувати</button>
+            <button class="action primary" id="sendBtn" disabled>Вставити в чат</button>
+        </div>
+    </div>
+
+    <script>
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const micBtn = document.getElementById('micBtn');
+        const statusEl = document.getElementById('status');
+        const transcriptEl = document.getElementById('transcript');
+        const sendBtn = document.getElementById('sendBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        let recognition = null;
+        let isRecording = false;
+        let finalTranscript = '';
+
+        function updateSendState() {
+            sendBtn.disabled = !transcriptEl.value.trim();
+        }
+
+        transcriptEl.addEventListener('input', updateSendState);
+
+        if (!SpeechRecognition) {
+            statusEl.innerHTML = '<span class="error">Цей браузер не підтримує розпізнавання мовлення. Спробуйте Chrome або Edge.</span>';
+            micBtn.disabled = true;
+        } else {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'uk-UA';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function () {
+                statusEl.textContent = 'Слухаю...';
+            };
+
+            recognition.onresult = function (event) {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const text = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += text + ' ';
+                    } else {
+                        interim += text;
+                    }
+                }
+                transcriptEl.value = (finalTranscript + interim).trim();
+                updateSendState();
+            };
+
+            recognition.onerror = function (event) {
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    statusEl.innerHTML = '<span class="error">Доступ до мікрофона заблоковано. Дозвольте його в налаштуваннях сайту в браузері.</span>';
+                    isRecording = false;
+                    micBtn.classList.remove('recording');
+                } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    statusEl.innerHTML = '<span class="error">Помилка: ' + event.error + '</span>';
+                }
+            };
+
+            recognition.onend = function () {
+                if (isRecording) {
+                    try { recognition.start(); } catch (e) { /* already stopped */ }
+                } else {
+                    micBtn.classList.remove('recording');
+                    statusEl.textContent = transcriptEl.value.trim() ? 'Готово. Перевірте текст нижче.' : 'Натисніть мікрофон, щоб почати';
+                }
+            };
+
+            micBtn.addEventListener('click', function () {
+                if (isRecording) {
+                    isRecording = false;
+                    recognition.stop();
+                } else {
+                    isRecording = true;
+                    micBtn.classList.add('recording');
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        // recognition already active; ignore
+                    }
+                }
+            });
+        }
+
+        sendBtn.addEventListener('click', function () {
+            const text = transcriptEl.value.trim();
+            if (!text) return;
+            if (window.opener) {
+                window.opener.postMessage({ source: 'taska-voice', text: text }, '*');
+            }
+            window.close();
+        });
+
+        cancelBtn.addEventListener('click', function () {
+            window.close();
+        });
+    </script>
+</body>
+
+</html>

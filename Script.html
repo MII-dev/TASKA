@@ -995,6 +995,44 @@
                 .aiChat(message, chatHistory);
         }
 
+        // ==========================================
+        // ============ Voice Input (AI) ============
+        // ==========================================
+
+        // Apps Script рендерить сторінку у вкладеному iframe без "microphone"
+        // у Permissions-Policy, тому SpeechRecognition/getUserMedia напряму тут
+        // завжди повертають "not-allowed" — і на десктопі, і на телефоні. Обхід:
+        // розпізнавання винесене на окрему сторінку (GitHub Pages, без обмеження
+        // iframe), яка відкривається спливаючим вікном і повертає розпізнаний
+        // текст через postMessage.
+        const VOICE_INPUT_ORIGIN = 'https://mii-dev.github.io';
+        const VOICE_INPUT_URL = VOICE_INPUT_ORIGIN + '/TASKA/voice.html';
+        let voicePopup = null;
+
+        function toggleVoiceInput() {
+            if (voicePopup && !voicePopup.closed) {
+                voicePopup.focus();
+                return;
+            }
+            voicePopup = window.open(VOICE_INPUT_URL, 'taskaVoiceInput', 'width=420,height=620,resizable=yes');
+            if (!voicePopup) {
+                addAiMsg('Не вдалося відкрити вікно голосового вводу — дозвольте спливаючі вікна для цього сайту.', 'bot');
+            }
+        }
+
+        window.addEventListener('message', function (event) {
+            if (event.origin !== VOICE_INPUT_ORIGIN) return;
+            if (!event.data || event.data.source !== 'taska-voice') return;
+
+            const text = (event.data.text || '').trim();
+            if (!text) return;
+
+            const input = document.getElementById('aiChatInput');
+            const existing = input.value.trim();
+            input.value = existing ? existing + ' ' + text : text;
+            input.focus();
+        });
+
         function addAiMsg(text, sender) {
             const msgsContainer = document.getElementById('aiChatMessages');
             const msgDiv = document.createElement('div');
